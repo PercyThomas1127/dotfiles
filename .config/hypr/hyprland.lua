@@ -288,6 +288,16 @@ hl.bind("SUPER + SHIFT + V", hl.dsp.exec_cmd(editor))
 ---- Session ----
 hl.bind("SUPER + L", hl.dsp.exec_cmd("hyprlock"))
 hl.bind("SUPER + SHIFT + R", hl.dsp.exec_cmd("hyprctl reload"))
+
+-- Recall the most recent dismissed notification. dunst has no notification
+-- centre (unlike swaync) -- it keeps a history buffer instead, and this
+-- re-displays entries from it one at a time. `dunstctl count history` shows
+-- how many are stored.
+hl.bind("SUPER + N", hl.dsp.exec_cmd("dunstctl history-pop"))
+-- Dismiss everything: close any popups still on screen, then wipe the history
+-- buffer. (dunstctl also has history-rm <ID> to drop a single entry, and
+-- close-all on its own if you only want to clear what is visible.)
+hl.bind("SUPER + SHIFT + N", hl.dsp.exec_cmd("dunstctl close-all && dunstctl history-clear"))
 hl.bind("SUPER + ALT + M", hl.dsp.exec_cmd("XDG_MENU_PREFIX=plasma- kbuildsycoca6"))
 hl.bind("SUPER + ALT + SHIFT + E", hl.dsp.exit())
 hl.bind("SUPER + ALT + SHIFT + S", hl.dsp.exec_cmd("systemctl poweroff"))
