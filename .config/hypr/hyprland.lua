@@ -1,0 +1,360 @@
+-- Hyprland Lua config -- "Balcony" rice by 1amSimp1e, ported to this machine.
+--   rice:    github.com/1amSimp1e/dots  (branch: balcony)
+--   machine: Fedora Asahi Remix 44, Apple Silicon MacBook Air (M1, 13")
+--
+-- The upstream rice ships hyprland.conf. Hyprland loads hyprland.lua in
+-- preference to hyprland.conf, and .conf support is removed in 0.57, so its
+-- 259 lines were translated into the Lua API here rather than copied.
+-- Hardware-specific values were corrected; see the notes inline.
+
+
+------------------
+---- MONITORS ----
+------------------
+
+-- The rice hardcodes "eDP-1,1920x1080@60,0x0,1" for the author's panel.
+-- This machine is 2560x1600; scale must divide it evenly (2560/1.6 = 1600).
+hl.monitor({
+    output   = "",
+    mode     = "preferred",
+    position = "auto",
+    scale    = "1.6",
+})
+
+
+---------------------
+---- MY PROGRAMS ----
+---------------------
+
+local terminal    = "konsole"
+local fileManager = "dolphin"
+local menu        = "wmenu-run"
+local browser     = "firefox"
+local editor      = "code"
+
+-------------------
+---- AUTOSTART ----
+-------------------
+
+-- From the rice: waybar, dunst, wallpaper, dbus/systemd env import.
+-- Dropped (not installed / not applicable here):
+--   fcitx5           -- input method, not installed
+--   blueman-applet   -- not installed
+--   startpage.sh     -- serves ~/Developer/Bento, which does not exist
+--   screensharing.sh -- killalls the portals and restarts them by hand;
+--                       Hyprland + xdg-desktop-portal-hyprland handle this
+--                       via systemd now, so it does more harm than good.
+-- Wallpaper: the rice calls swaybg. hyprlax is kept instead -- it renders the
+-- image and adds workspace parallax. wallpaper.png is 2560x1440, leaving only
+-- ~284px of horizontal travel at this resolution, so the parallax is subtle.
+-- The rice's AnimeWaiting.png (3000x1440) is still in ~/.config/hypr/wallpapers/
+-- if you ever want more movement.
+hl.on("hyprland.start", function ()
+  hl.exec_cmd(table.concat({
+    "waybar",
+    "dunst",
+    os.getenv("HOME") .. "/.local/bin/hyprlax " .. os.getenv("HOME") .. "/Pictures/wallpaper.png",
+    -- MPRIS music control bar (github.com/shantanubaddar/hyprwave), built from
+    -- source and installed to ~/.local/bin. Absolute path for the same reason
+    -- as hyprlax: Hyprland's exec does not reliably inherit the login PATH.
+    -- Anchored to the bottom edge in ~/.config/hyprwave/config.conf so it does
+    -- not collide with waybar at the top.
+    os.getenv("HOME") .. "/.local/bin/hyprwave",
+    "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP",
+    "systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP",
+    -- kept from the previous setup: these are unrelated to the rice
+    "hypridle",
+    "kwalletd6",
+    "kdeconnectd",
+    "kdeconnect-indicator",
+    "/usr/libexec/kf6/polkit-kde-authentication-agent-1",
+    "XDG_MENU_PREFIX=plasma- kbuildsycoca6",
+  }, " & "))
+end)
+
+
+-------------------------------
+---- ENVIRONMENT VARIABLES ----
+-------------------------------
+
+hl.env("XCURSOR_THEME", "breeze_cursors")
+hl.env("XCURSOR_SIZE", "24")
+hl.env("HYPRCURSOR_SIZE", "24")
+
+
+-----------------------
+---- LOOK AND FEEL ----
+-----------------------
+
+hl.config({
+    general = {
+        layout      = "dwindle",
+        gaps_in     = 11.8,
+        gaps_out    = 15.5,
+        border_size = 2,
+
+        col = {
+            active_border   = "0xff5e81ac",  -- nord blue
+            inactive_border = "0x66333333",
+        },
+    },
+
+    decoration = {
+        rounding = 19,
+
+        -- PERFORMANCE WARNING (this machine specifically):
+        -- These are the rice's values. size 13 x 3 passes is very heavy blur.
+        -- The Asahi Mesa driver on this M1 already showed it struggles with
+        -- multi-pass blur -- hyprlax's blurred multi-layer scene ran at ~2 FPS
+        -- against ~62 FPS unblurred. If the desktop feels sluggish, swap in
+        -- the commented values below; they keep the look and cost far less.
+        blur = {
+            enabled           = true,
+            size              = 13,
+            passes            = 3,
+            new_optimizations = true,
+            -- size   = 4,
+            -- passes = 2,
+        },
+
+        shadow = {
+            enabled        = true,
+            range          = 30,
+            color          = 0xffa7caff,
+            color_inactive = 0x50000000,
+        },
+    },
+
+    animations = {
+        enabled = true,
+    },
+
+    -- dwindle.pseudotile was removed in Hyprland 0.56; SUPER+P (hl.dsp.window.pseudo)
+    -- is the per-window equivalent and is bound below.
+    dwindle = {
+        force_split = 0,
+    },
+
+    master = {
+        new_on_top = true,
+    },
+
+    misc = {
+        disable_hyprland_logo    = true,
+        disable_splash_rendering = true,
+        mouse_move_enables_dpms  = true,
+        -- misc.vfr was removed in Hyprland 0.56 (VFR is handled automatically now).
+    },
+})
+
+-- The rice's animation set: one custom bezier, four animations.
+hl.curve("overshot", { type = "bezier", points = { {0.13, 0.99}, {0.29, 1.1} } })
+
+hl.animation({ leaf = "windows",    enabled = true, speed = 4,   bezier = "overshot", style = "slide" })
+hl.animation({ leaf = "fade",       enabled = true, speed = 10,  bezier = "default" })
+hl.animation({ leaf = "workspaces", enabled = true, speed = 8.8, bezier = "overshot", style = "slide" })
+hl.animation({ leaf = "border",     enabled = true, speed = 14,  bezier = "default" })
+
+-- Rice had "blurls=waybar" -- blur behind the bar.
+hl.layer_rule({
+    name  = "blur-waybar",
+    match = { namespace = "^waybar$" },
+    blur  = true,
+})
+
+
+---------------
+---- INPUT ----
+---------------
+
+-- Input is deliberately NOT the rice's. These are your own pre-rice settings:
+-- the rice sets natural_scroll = false and force_no_accel = true, both of which
+-- feel wrong on a MacBook trackpad. force_no_accel in particular disables
+-- pointer acceleration entirely.
+hl.config({
+    input = {
+        kb_layout  = "us",
+        kb_variant = "",
+        kb_model   = "",
+        -- Right Super (right Cmd) acts as the Compose key.
+        -- Left Super still drives all the SUPER binds.
+        kb_options = "compose:rwin",
+        kb_rules   = "",
+
+        follow_mouse = 1,
+
+        sensitivity = 0, -- -1.0 - 1.0, 0 means no modification.
+
+        touchpad = {
+            natural_scroll       = true,
+            disable_while_typing = true,
+            -- This trackpad is a clickpad (one physical button). Without
+            -- clickfinger_behavior, libinput uses "button areas": right-click
+            -- only fires when you press the bottom-right CORNER, so a
+            -- two-finger press (the macOS reflex) registers as a left click
+            -- and no context menu ever opens.
+            -- With it on: 1 finger = left, 2 = right, 3 = middle, anywhere.
+            clickfinger_behavior = true,
+            -- Physical presses only; light taps do nothing. Combined with
+            -- clickfinger_behavior above, that means press with 1 finger for
+            -- left, 2 for right, 3 for middle.
+            -- (Note: hyprctl reports this as "tap-to-click", but the Lua
+            -- config key is tap_to_click -- the hyphenated form is rejected.)
+            tap_to_click = false,
+        },
+    },
+})
+
+hl.gesture({
+    fingers   = 3,
+    direction = "horizontal",
+    action    = "workspace",
+})
+
+
+--------------------------------
+---- WINDOWS AND WORKSPACES ----
+--------------------------------
+
+hl.window_rule({ name = "float-rofi",        match = { class = "(?i)rofi" },      float = true })
+hl.window_rule({ name = "float-pavucontrol", match = { class = "pavucontrol" },   float = true })
+
+hl.window_rule({ name = "size-float-kitty",  match = { title = "^(float_kitty)$" },  size  = "800 500" })
+hl.window_rule({ name = "float-full-kitty",  match = { title = "^(full_kitty)$" },   float = true })
+hl.window_rule({ name = "float-fly-kitty",   match = { title = "^(fly_is_kitty)$" }, float = true })
+
+hl.window_rule({ name = "float-brave-save",  match = { class = "^(brave)$",   title = "^(Save File)$" },          float = true })
+hl.window_rule({ name = "float-brave-open",  match = { class = "^(brave)$",   title = "^(Open File)$" },          float = true })
+hl.window_rule({ name = "float-firefox-pip", match = { class = "^(firefox)$", title = "^(Picture-in-Picture)$" }, float = true })
+hl.window_rule({ name = "float-blueman",     match = { class = "^(blueman-manager)$" },        float = true })
+hl.window_rule({ name = "float-iwgtk",       match = { class = "^(org.twosheds.iwgtk)$" },     float = true })
+hl.window_rule({ name = "float-blueberry",   match = { class = "^(blueberry.py)$" },           float = true })
+hl.window_rule({ name = "float-portal-gtk",  match = { class = "^(xdg-desktop-portal-gtk)$" }, float = true })
+hl.window_rule({ name = "float-geeqie",      match = { class = "^(geeqie)$" },                 float = true })
+hl.window_rule({ name = "tile-neovide",      match = { class = "^(neovide)$" },                float = false })
+
+-- Xwayland Video Bridge (KDE helper that lets X11 apps screen-share on Wayland).
+-- It is started by /etc/xdg/autostart/org.kde.xwaylandvideobridge.desktop, which
+-- only began running once uwsm activated graphical-session.target. It is meant to
+-- be an invisible 1x1 helper, but with no rules it tiles as a large black window.
+-- These are the rules the project documents for Hyprland.
+hl.window_rule({
+    name  = "hide-xwaylandvideobridge",
+    match = { class = "^(xwaylandvideobridge)$" },
+    opacity          = 0.0,
+    max_size         = "1 1",
+    no_anim          = true,
+    no_initial_focus = true,
+    no_focus         = true,
+    no_blur          = true,
+})
+
+-- Transparency. The rice targets VSCodium; this machine has VS Code (class "code").
+hl.window_rule({ name = "opacity-dolphin",  match = { class = "^(org.kde.dolphin)$" }, opacity = 0.92 })
+hl.window_rule({ name = "opacity-discord",  match = { class = "(?i)discord" },         opacity = 0.96 })
+hl.window_rule({ name = "opacity-code",     match = { class = "^(code)$" },            opacity = 0.90 })
+hl.window_rule({ name = "opacity-obsidian", match = { class = "(?i)obsidian" },        opacity = 0.88 })
+
+-- Smart gaps: no gaps/border/rounding when a workspace holds one tiled window.
+hl.workspace_rule({ workspace = "w[tv1]", gaps_out = 0, gaps_in = 0 })
+hl.workspace_rule({ workspace = "f[1]",   gaps_out = 0, gaps_in = 0 })
+hl.window_rule({ name = "no-gaps-wtv1", match = { float = false, workspace = "w[tv1]" }, border_size = 0, rounding = 0 })
+hl.window_rule({ name = "no-gaps-f1",   match = { float = false, workspace = "f[1]" },   border_size = 0, rounding = 0 })
+
+
+---------------------
+---- KEYBINDINGS ----
+---------------------
+
+---- Window management ----
+hl.bind("SUPER + SHIFT + Q", hl.dsp.window.close())
+hl.bind("SUPER + F", hl.dsp.window.fullscreen({ action = "toggle" }))
+hl.bind("SUPER + SHIFT + SPACE", hl.dsp.window.float({ action = "toggle" }))
+hl.bind("SUPER + P", hl.dsp.window.pseudo())
+hl.bind("SUPER + J", hl.dsp.layout("togglesplit"))
+
+---- Launchers ----
+hl.bind("SUPER + D", hl.dsp.exec_cmd(menu))
+hl.bind("SUPER + RETURN", hl.dsp.exec_cmd(terminal))
+hl.bind("SUPER + SHIFT + F", hl.dsp.exec_cmd(fileManager))
+hl.bind("SUPER + SHIFT + G", hl.dsp.exec_cmd(browser))
+hl.bind("SUPER + SHIFT + V", hl.dsp.exec_cmd(editor))
+
+-- Clipboard history. The original used "clipvault", which is not installed here.
+-- With cliphist (dnf install cliphist) this would be:
+-- hl.bind("SUPER + V", hl.dsp.exec_cmd([[cliphist list | wofi -S dmenu | cliphist decode | wl-copy]]))
+-- and the autostart block would need: wl-paste --watch cliphist store
+
+---- Session ----
+hl.bind("SUPER + L", hl.dsp.exec_cmd("hyprlock"))
+hl.bind("SUPER + SHIFT + R", hl.dsp.exec_cmd("hyprctl reload"))
+hl.bind("SUPER + ALT + M", hl.dsp.exec_cmd("XDG_MENU_PREFIX=plasma- kbuildsycoca6"))
+hl.bind("SUPER + ALT + SHIFT + E", hl.dsp.exit())
+hl.bind("SUPER + ALT + SHIFT + S", hl.dsp.exec_cmd("systemctl poweroff"))
+hl.bind("SUPER + ALT + SHIFT + R", hl.dsp.exec_cmd("systemctl reboot"))
+hl.bind("SUPER + ALT + SHIFT + H", hl.dsp.exec_cmd("systemctl hibernate"))
+
+---- Focus ----
+hl.bind("SUPER + left",  hl.dsp.focus({ direction = "left" }))
+hl.bind("SUPER + right", hl.dsp.focus({ direction = "right" }))
+hl.bind("SUPER + up",    hl.dsp.focus({ direction = "up" }))
+hl.bind("SUPER + down",  hl.dsp.focus({ direction = "down" }))
+
+---- Workspaces: SUPER + [0-9] to switch, + SHIFT to move the window there ----
+for i = 1, 10 do
+    local key = i % 10 -- 10 maps to key 0
+    hl.bind("SUPER + " .. key,         hl.dsp.focus({ workspace = i}))
+    hl.bind("SUPER + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
+end
+
+-- Scroll through existing workspaces with SUPER + scroll
+hl.bind("SUPER + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
+hl.bind("SUPER + mouse_up",   hl.dsp.focus({ workspace = "e-1" }))
+
+-- Move/resize windows with SUPER + LMB/RMB and dragging
+hl.bind("SUPER + mouse:272", hl.dsp.window.drag(),   { mouse = true })
+hl.bind("SUPER + mouse:273", hl.dsp.window.resize(), { mouse = true })
+
+-- Example special workspace (scratchpad)
+-- hl.bind("SUPER + S",         hl.dsp.workspace.toggle_special("magic"))
+-- hl.bind("SUPER + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic" }))
+
+---- Laptop multimedia keys ----
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      { locked = true, repeating = true })
+hl.bind("XF86AudioMute",        hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     { locked = true, repeating = true })
+hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   { locked = true, repeating = true })
+
+-- Backlight device here is "apple-panel-bl" (the original hardcoded "intel_backlight").
+hl.bind("XF86MonBrightnessUp",
+    hl.dsp.exec_cmd([[brightnessctl -d apple-panel-bl set +2% && notify-send "Brightness" "$(brightnessctl -m -d apple-panel-bl | awk -F, '{print substr($4, 0, length($4)-1)}')%"]]),
+    { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown",
+    hl.dsp.exec_cmd([[brightnessctl -d apple-panel-bl set 2%- && notify-send "Brightness" "$(brightnessctl -m -d apple-panel-bl | awk -F, '{print substr($4, 0, length($4)-1)}')%"]]),
+    { locked = true, repeating = true })
+
+-- Keyboard backlight (LED class device "kbd_backlight" on this machine).
+hl.bind("XF86KbdBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -d kbd_backlight set +10%"), { locked = true, repeating = true })
+hl.bind("XF86KbdBrightnessDown", hl.dsp.exec_cmd("brightnessctl -d kbd_backlight set 10%-"), { locked = true, repeating = true })
+
+-- Requires playerctl
+hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })
+hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
+
+---- Screenshots ----
+-- The original used "hyprshot", which is not installed. grim + slurp are.
+-- (spectacle is also installed if you prefer a GUI.)
+hl.bind("SUPER + CONTROL + 4", hl.dsp.exec_cmd(
+    [[mkdir -p ~/Pictures/Screenshots && grim -g "$(slurp)" ~/Pictures/Screenshots/"$(date +%Y-%m-%d_%H-%M-%S)".png && notify-send "Screenshot" "Saved to ~/Pictures/Screenshots"]]))
+
+---- Lid switch ----
+-- Turn the internal panel off when the lid closes, back on when it opens.
+-- The switch device on this machine is "Apple SMC power/lid events"
+-- (the original said "Lid Switch", which is what it is called on most PCs).
+-- Verify with `hyprctl devices` once Hyprland is running.
+hl.bind("switch:on:Apple SMC power/lid events",
+    hl.dsp.exec_cmd([[hyprctl eval 'hl.monitor({output = "eDP-1", disabled = true})']]))
+hl.bind("switch:off:Apple SMC power/lid events",
+    hl.dsp.exec_cmd("hyprctl reload"))

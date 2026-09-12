@@ -1,0 +1,17 @@
+#!/bin/sh
+# Adapted from the balcony rice for this machine.
+# Original used brillo + light (brillo is not packaged for Fedora); this uses
+# brightnessctl against apple-panel-bl, the backlight device on this MacBook.
+# Also fixes the rice's icon filenames: it asked for brightness-up.png but the
+# shipped assets are brightness_up.png.
+ICONS="$HOME/.config/dunst/assets/ui"
+DEV=apple-panel-bl
+
+level() { brightnessctl -m -d "$DEV" | awk -F, '{sub(/%/,"",$4); print $4}'; }
+
+case "$1" in
+  up)   brightnessctl -d "$DEV" set 2%+ >/dev/null
+        b=$(level); dunstify -a "BRIGHTNESS" "Increasing to $b%" -h int:value:"$b" -i "$ICONS/brightness_up.png" -r 2593 -u normal ;;
+  down) brightnessctl -d "$DEV" set 2%- >/dev/null
+        b=$(level); dunstify -a "BRIGHTNESS" "Decreasing to $b%" -h int:value:"$b" -i "$ICONS/brightness_down.png" -r 2593 -u normal ;;
+esac

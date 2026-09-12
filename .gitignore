@@ -1,0 +1,15 @@
+# Bare dotfiles repo: work-tree is $HOME, so ignore everything by default and
+# add files explicitly. status.showUntrackedFiles=no already hides the noise;
+# these rules stop a careless `add` from sweeping in scratch files.
+
+# my own working backups from the rice port
+*.orig-from-friend
+*.pre-*
+*.old
+*.conf.old
+hyprland-backup-*.conf
+rice-backup-*/
+
+# caches / state that should never be committed
+*.log
+.cache/

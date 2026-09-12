@@ -1,0 +1,20 @@
+#!/bin/sh
+# Adapted from the balcony rice for this machine.
+# Original used pamixer + canberra-gtk-play; this uses wpctl (already present,
+# and what the rest of this config uses) and drops the sound cue.
+ICONS="$HOME/.config/dunst/assets/ui"
+SINK="@DEFAULT_AUDIO_SINK@"
+
+get_vol() { wpctl get-volume "$SINK" | awk '{printf "%d", $2*100}'; }
+notify()  { dunstify -a "VOLUME" "$1" -h int:value:"$2" -i "$3" -r 2593 -u normal; }
+
+case "$1" in
+  up)   wpctl set-volume -l 1 "$SINK" 2%+; v=$(get_vol); notify "Increasing to $v%" "$v" "$ICONS/volume_up.png" ;;
+  down) wpctl set-volume "$SINK" 2%-;      v=$(get_vol); notify "Decreasing to $v%" "$v" "$ICONS/volume_down.png" ;;
+  mute) wpctl set-mute "$SINK" toggle
+        if wpctl get-volume "$SINK" | grep -q MUTED; then
+          dunstify -a "VOLUME" "MUTED" -i "$ICONS/volume_muted.svg" -r 2593 -u normal
+        else
+          v=$(get_vol); notify "UNMUTED" "$v" "$ICONS/volume_up.png"
+        fi ;;
+esac
