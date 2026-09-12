@@ -1,0 +1,72 @@
+#!/bin/sh
+# Show hyprwave only while something is playing.
+#
+# hyprwave has no auto-hide option (its whole config schema is edge, margin,
+# layer, exclusive_zone, enabled, now_playing, idle_timeout, preference) and
+# with no player it deliberately stays up showing "No Player". Its only
+# control is a BLIND SIGUSR1 toggle -- hyprwave-toggle's `visibility` action
+# reads its argument and ignores it -- and there is no socket or D-Bus action
+# to query state with.
+#
+# Rather than track state in a file (which desyncs), read the truth from the
+# compositor: hiding destroys hyprwave's layer-shell surface, so the
+# surface's presence IS the state. Verified 1 -> 0 -> 1 by signal.
+#
+# NOTE the exact match on "hyprwave" below. A substring match would also
+# catch the separate "hyprwave-notification" surface and read as shown
+# forever.
+
+HEARTBEAT=10   # seconds; see the loop at the bottom for why this is needed
+
+bar_shown() {
+    hyprctl layers -j 2>/dev/null | jq -e '
+        [ .[].levels[][] | select(.namespace == "hyprwave") ] | length > 0
+    ' >/dev/null 2>&1
+}
+
+# Strict: only while actually Playing, so pausing hides the bar. That is fine
+# here because pausing is done with the keyboard media key, not from the bar.
+want_shown() { [ "$(playerctl status 2>/dev/null)" = "Playing" ]; }
+
+# NOTE: `kill -s USR1`, NOT `kill -SIGUSR1`. The SIG-prefixed form is a bash
+# extension; under POSIX sh it fails with "invalid signal specification" and
+# this script then silently does nothing at all. hyprwave-toggle gets away
+# with the SIG- form only because it is #!/bin/bash.
+reconcile() {
+    pid=$(pgrep -x hyprwave) || return 0
+    [ -n "$pid" ] || return 0
+    if want_shown; then
+        bar_shown && return 0            # already correct, nothing to do
+    else
+        bar_shown || return 0            # already correct, nothing to do
+    fi
+    kill -s USR1 "$pid"
+    # show/hide is an animated revealer (~400ms). Settle before the next read
+    # or a burst of status events double-toggles. Only needed after a toggle.
+    sleep 0.5
+}
+
+cleanup() {
+    [ -n "$HB" ] && kill "$HB" 2>/dev/null
+    exit 0
+}
+trap cleanup INT TERM
+
+reconcile                                # initial state
+
+# Heartbeat. The event loop below only wakes on PLAYBACK changes, but the bar
+# can desync without one: hyprwave resets itself to visible whenever it
+# restarts, and `hyprwave-toggle set-theme` / `set-position` restart it
+# internally. Without this the bar stays wrongly visible until the next
+# play/pause. reconcile() returns immediately when state already matches, so
+# this costs one hyprctl plus one playerctl call every HEARTBEAT seconds.
+( while :; do sleep "$HEARTBEAT"; reconcile; done ) &
+HB=$!
+
+# -a follows all players so it survives players appearing and disappearing.
+# --follow still exits once every player is gone, hence the outer loop.
+while :; do
+    playerctl -a --follow status 2>/dev/null | while read -r _; do reconcile; done
+    reconcile
+    sleep 2
+done

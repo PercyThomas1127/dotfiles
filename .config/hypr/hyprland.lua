@@ -60,6 +60,11 @@ hl.on("hyprland.start", function ()
     -- Anchored to the bottom edge in ~/.config/hyprwave/config.conf so it does
     -- not collide with waybar at the top.
     os.getenv("HOME") .. "/.local/bin/hyprwave",
+    -- Shows hyprwave only while something is actually playing. hyprwave has
+    -- no auto-hide option and its only control is a blind SIGUSR1 toggle, so
+    -- the watcher reads the real state from the compositor (hiding destroys
+    -- hyprwave's layer surface) and toggles only on mismatch.
+    os.getenv("HOME") .. "/.config/hypr/scripts/hyprwave-autohide",
     "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP",
     "systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP",
     -- kept from the previous setup: these are unrelated to the rice
@@ -157,6 +162,14 @@ hl.animation({ leaf = "windows",    enabled = true, speed = 4,   bezier = "overs
 hl.animation({ leaf = "fade",       enabled = true, speed = 10,  bezier = "default" })
 hl.animation({ leaf = "workspaces", enabled = true, speed = 8.8, bezier = "overshot", style = "slide" })
 hl.animation({ leaf = "border",     enabled = true, speed = 14,  bezier = "default" })
+
+-- Layer surfaces (waybar, hyprwave, hyprlax). The rice never set these, so
+-- they inherited defaults and came in with a different feel from how they
+-- went out. Setting In and Out identically makes it symmetric. speed is in
+-- units of ~100ms, so 4 roughly matches hyprwave's own ~400ms hide.
+hl.animation({ leaf = "layersIn",  enabled = true, speed = 4, bezier = "default", style = "fade" })
+hl.animation({ leaf = "layersOut", enabled = true, speed = 4, bezier = "default", style = "fade" })
+
 
 -- Rice had "blurls=waybar" -- blur behind the bar.
 hl.layer_rule({
