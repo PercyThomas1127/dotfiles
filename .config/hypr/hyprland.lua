@@ -31,6 +31,11 @@ local fileManager = "dolphin"
 local menu        = "wmenu-run"
 local browser     = "firefox"
 local editor      = "code"
+-- Same command as waybar's launcher button (waybar/config on-click), so the
+-- keybind and the button behave identically rather than adding a fourth
+-- launcher look. ~/.config/rofi/config.rasi enables drun,run,filebrowser,window
+-- so Tab cycles apps / commands / files / open windows from one prompt.
+local appFinder   = "rofi -show drun"
 
 -------------------
 ---- AUTOSTART ----
@@ -295,6 +300,7 @@ hl.bind("SUPER + RETURN", hl.dsp.exec_cmd(terminal))
 hl.bind("SUPER + SHIFT + F", hl.dsp.exec_cmd(fileManager))
 hl.bind("SUPER + SHIFT + G", hl.dsp.exec_cmd(browser))
 hl.bind("SUPER + SHIFT + V", hl.dsp.exec_cmd(editor))
+hl.bind("SUPER + E", hl.dsp.exec_cmd(appFinder))
 
 -- Clipboard history. The original used "clipvault", which is not installed here.
 -- With cliphist (dnf install cliphist) this would be:
