@@ -111,6 +111,22 @@ Scale must divide the panel resolution evenly: `2560 / 1.6 = 1600`.
 - **`.conf` is deprecated.** Hyprland loads `hyprland.lua` in preference to
   `hyprland.conf`, and `.conf` support is removed in 0.57. The old file is
   kept for reference only and is ignored.
+- **Do NOT "fix" the `!important` in hyprwave's stylesheet.**
+  `~/.local/share/hyprwave/style.css` contains, in its `.no-transition` rule:
+  ```css
+  transition: none !important;
+  animation:  none !important;
+  ```
+  GTK4 CSS does not support `!important` and rejects both declarations with
+  *"Junk at end of value"*, so the rule never applies. That looks like an
+  obvious bug — it is even commented "CRITICAL" upstream — but it is
+  load-bearing *because* it is broken. hyprwave applies that class during its
+  programmatic animations and does not reliably remove it, so making the rule
+  work permanently disables its transitions and the bar renders frozen.
+  Removing `!important` was tried on 2026-09-12 and had exactly that effect;
+  the file is stock upstream and should stay that way.
+  (The commit message on `c45c3a1` claims dropping `!important` "fixes it".
+  That is wrong — this entry is the correction.)
 - **Trackpad:** `clickfinger_behavior` is on and `tap_to_click` is off, so
   clicking is by finger count on a physical press — 1 left, 2 right, 3 middle.
   Without `clickfinger_behavior`, right-click only fires in the bottom-right
