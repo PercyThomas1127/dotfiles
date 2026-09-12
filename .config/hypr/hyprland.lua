@@ -91,6 +91,13 @@ hl.env("XCURSOR_THEME", "breeze_cursors")
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
 
+-- Qt apps (dolphin, konsole, the portal file dialog) otherwise fall back to
+-- Qt's built-in Fusion look and ignore the configured Breeze Dark scheme.
+-- NOTE: this only covers apps Hyprland launches. xdg-desktop-portal-kde is
+-- D-Bus activated by systemd, so it needs the same variable in
+-- ~/.config/environment.d/10-qt-theme.conf -- setting it here is not enough.
+hl.env("QT_QPA_PLATFORMTHEME", "kde")
+
 
 -----------------------
 ---- LOOK AND FEEL ----
@@ -275,6 +282,14 @@ hl.window_rule({ name = "opacity-dolphin",  match = { class = "^(org.kde.dolphin
 hl.window_rule({ name = "opacity-discord",  match = { class = "(?i)discord" },         opacity = 0.96 })
 hl.window_rule({ name = "opacity-code",     match = { class = "^(code)$" },            opacity = 0.90 })
 hl.window_rule({ name = "opacity-obsidian", match = { class = "(?i)obsidian" },        opacity = 0.88 })
+-- The portal file dialog (Save As / Upload File). Matches VS Code's 0.90 so it
+-- sits at the same transparency as the rest of the desktop.
+-- Class is the KDE backend's, set in ~/.config/xdg-desktop-portal/portals.conf;
+-- the rice's float-portal-gtk rule above matches the GTK backend and so never
+-- fires. Konsole looks similar but gets there differently -- Opacity=0.87 in its
+-- own Amethyst.colorscheme, which blends only the background and leaves text
+-- solid, whereas a Hyprland opacity rule fades the whole window.
+hl.window_rule({ name = "opacity-portal",   match = { class = "^(org.freedesktop.impl.portal.desktop.kde)$" }, opacity = 0.90 })
 
 -- Smart gaps: no gaps/border/rounding when a workspace holds one tiled window.
 hl.workspace_rule({ workspace = "w[tv1]", gaps_out = 0, gaps_in = 0 })
