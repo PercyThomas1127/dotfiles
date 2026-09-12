@@ -101,12 +101,27 @@
        "on-click": "swaylock",
        "format" : "",
     },
-   "custom/spotify": {
+    "custom/spotify": {
         "exec": "python3 ~/.config/waybar/scripts/mediaplayer.py",
         "format": " {}",
         "return-type": "json",
+        // Cap the rendered label so a long title can never push the side groups
+        // around. max-length also switches the label to ELLIPSIZE_END, which is
+        // what makes it yield instead of shove. 44 leaves ~115px of headroom for
+        // the (currently empty) tray and the format-alt states.
+        "max-length": 44,
+        // Titles containing & < > are otherwise parsed as Pango markup and blank
+        // the module. Escaping must happen HERE, after the script has sliced the
+        // text -- never in the script, or a scroll window can split an entity.
+        "escape": true,
+        // format has static content (the glyph), so without this a stray
+        // glyph-only pill floats at bar centre when no player is running.
+        "hide-empty-text": true,
+        // Defaults to true: waybar would respawn the continuous script on every
+        // click, blanking the module and resetting the scroll position.
+        "exec-on-event": false,
         "on-click": "playerctl play-pause",
-        "on-double-click-right": "playerctl next",
+        "on-click-right": "playerctl next",
         "on-scroll-down": "playerctl previous",
     },
     "custom/power-menu": {

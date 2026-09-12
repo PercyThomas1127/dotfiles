@@ -5,16 +5,114 @@ import sys
 import signal
 import gi
 import json
+import unicodedata
 gi.require_version('Playerctl', '2.0')
 from gi.repository import Playerctl, GLib
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------- marquee ----
+# waybar has no native scrolling text, so long titles are scrolled here by
+# emitting a shifted window of the text on a GLib timer.
+MAX_LENGTH = 44     # MUST match "max-length" in ~/.config/waybar/config
+GAP        = '   '  # separator between loop repetitions
+TICK_MS    = 250    # 4 cells/sec
+HEAD_DWELL = 8      # ticks (~2s) held at the start of the title
 
-def write_output(text, player):
+# One state slot, deliberately: there is one GtkLabel, so there is one marquee.
+# A module-level dict keeps the existing signal-handler signatures untouched.
+_mq = {'body': '', 'prefix': '', 'player': None,
+       'offset': 0, 'dwell': 0, 'source_id': None, 'last': None}
+
+
+def _cells(ch):
+    """Display width in cells. Character count is a bad proxy for pixel width:
+    CJK and emoji are double-width, combining marks are zero-width."""
+    if unicodedata.combining(ch):
+        return 0
+    return 2 if unicodedata.east_asian_width(ch) in ('W', 'F') else 1
+
+
+def _width(s):
+    return sum(_cells(c) for c in s)
+
+
+def _take(s, start, budget):
+    """Slice from `start` taking at most `budget` cells, then pad with spaces to
+    exactly `budget` so the label width stays constant while scrolling."""
+    out, used, i = [], 0, start
+    while i < len(s) and used < budget:
+        w = _cells(s[i])
+        if used + w > budget:
+            break
+        out.append(s[i])
+        used += w
+        i += 1
+    return ''.join(out) + ' ' * (budget - used)
+
+
+def _window(prefix):
+    # label budget, minus waybar's format prefix, minus our pause prefix,
+    # minus 2 cells of slack for a wide glyph landing on the boundary.
+    return MAX_LENGTH - 2 - _width(prefix) - 2
+
+
+def _stop_marquee():
+    if _mq['source_id'] is not None:
+        GLib.source_remove(_mq['source_id'])
+        _mq['source_id'] = None
+
+
+def _emit(window):
+    frame = _mq['prefix'] + window
+    if frame == _mq['last']:
+        return
+    _mq['last'] = frame
+    # tooltip carries the FULL untruncated text
+    write_output(frame, _mq['player'], tooltip=_mq['prefix'] + _mq['body'])
+
+
+def _on_tick():
+    if _mq['source_id'] is None or _mq['player'] is None:
+        return False
+    if _mq['dwell'] > 0:
+        _mq['dwell'] -= 1
+        return True
+    padded = _mq['body'] + GAP
+    _mq['offset'] = (_mq['offset'] + 1) % len(padded)
+    _emit(_take(padded + padded, _mq['offset'], _window(_mq['prefix'])))
+    return True  # MUST be True; a bare return yields None and GLib drops the source
+
+
+def _set_marquee(body, prefix, player):
+    _mq['player'] = player
+    # Idempotence guard. Players re-emit `metadata` for an unchanged track;
+    # without this the offset resets on every emission and it never advances.
+    if body == _mq['body'] and prefix == _mq['prefix']:
+        return
+    _stop_marquee()
+    _mq.update(body=body, prefix=prefix, offset=0, dwell=HEAD_DWELL, last=None)
+    if not body:
+        write_output('', player)
+        return
+    w = _window(prefix)
+    if _width(body) <= w:
+        _emit(body)                    # fits: one write, no timer at all
+        return
+    if prefix:                         # paused: frozen head, no animation
+        _emit(_take(body, 0, w - 1).rstrip() + '…')
+        return
+    _emit(_take(body, 0, w))
+    _mq['source_id'] = GLib.timeout_add(TICK_MS, _on_tick)
+# -----------------------------------------------------------------------------
+
+
+
+def write_output(text, player, tooltip=''):
     logger.info('Writing output')
 
     output = {'text': text,
+              'tooltip': tooltip or text,
               'class': 'custom-' + player.props.player_name,
               'alt': player.props.player_name}
 
@@ -41,9 +139,11 @@ def on_metadata(player, metadata, manager):
     else:
         track_info = player.get_title()
 
-    if player.props.status != 'Playing' and track_info:
-        track_info = ' ' + track_info
-    write_output(track_info, player)
+    # The pause glyph is a PINNED prefix, not part of the scrolled string: a
+    # status icon that scrolled off the edge and back would be bizarre, and
+    # pinning it is what makes the width arithmetic exact.
+    prefix = ' ' if (player.props.status != 'Playing' and track_info) else ''
+    _set_marquee(track_info, prefix, player)
 
 
 def on_player_appeared(manager, player, selected_player=None):
@@ -55,6 +155,10 @@ def on_player_appeared(manager, player, selected_player=None):
 
 def on_player_vanished(manager, player):
     logger.info('Player has vanished')
+    # Critical: without this the timer keeps firing against a dead player and
+    # the module resurrects itself seconds after the player closed.
+    _stop_marquee()
+    _mq.update(body='', prefix='', player=None, offset=0, last=None)
     sys.stdout.write('\n')
     sys.stdout.flush()
 
@@ -70,6 +174,7 @@ def init_player(manager, name):
 
 def signal_handler(sig, frame):
     logger.debug('Received signal to stop, exiting')
+    _stop_marquee()
     sys.stdout.write('\n')
     sys.stdout.flush()
     # loop.quit()
