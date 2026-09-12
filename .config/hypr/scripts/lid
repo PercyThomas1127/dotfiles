@@ -1,0 +1,43 @@
+#!/bin/sh
+# Lid handler, bound to the lid switch in hyprland.lua.
+#
+# Screen-off on AC; on battery, whatever LID_BATTERY_ACTION says below.
+#
+# WHY THE DEFAULT IS `blank` AND NOT `suspend`:
+# This machine's display controller fails to reinitialise on resume. Every
+# suspend/resume logs
+#     eoInterfaceIOAV.cpp:237: IOAVVideoInterface open failed
+# with no following `dcp_poweron() done`, and recovery requires a force
+# power-off. That was 9/9 suspend cycles on kernel 7.1.6-400.
+#
+# Before switching this to `suspend`, verify resume actually works:
+#     systemctl suspend      # with nothing unsaved, then wake
+#     journalctl -b | grep -E "IOAVVideoInterface open failed|dcp_poweron\(\) done"
+# Only flip it if you see `dcp_poweron() done` and no failure line.
+LID_BATTERY_ACTION=blank        # blank | suspend
+
+# 1 = plugged in, 0 = on battery
+AC=$(cat /sys/class/power_supply/macsmc-ac/online 2>/dev/null || echo 1)
+
+# DPMS rather than disabling the output: disabling makes Hyprland reflow every
+# window onto a headless fallback, DPMS just blanks the panel and keeps the
+# layout. The {action=...} key is the form this build accepts -- a positional
+# string and the mode/state keys are silently ignored.
+dpms() { hyprctl eval "hl.dispatch(hl.dsp.dpms({action=\"$1\"}))" >/dev/null 2>&1; }
+
+case "$1" in
+    close)
+        if [ "$AC" = "0" ] && [ "$LID_BATTERY_ACTION" = "suspend" ]; then
+            systemctl suspend
+        else
+            dpms off
+        fi
+        ;;
+    open)
+        dpms on
+        ;;
+    *)
+        echo "usage: $0 {close|open}" >&2
+        exit 2
+        ;;
+esac

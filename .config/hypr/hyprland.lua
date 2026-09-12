@@ -143,6 +143,9 @@ hl.config({
         disable_hyprland_logo    = true,
         disable_splash_rendering = true,
         mouse_move_enables_dpms  = true,
+        -- Was unset (false), so only trackpad movement woke a DPMS-off display
+        -- and a keystroke did nothing.
+        key_press_enables_dpms   = true,
         -- misc.vfr was removed in Hyprland 0.56 (VFR is handled automatically now).
     },
 })
@@ -364,7 +367,17 @@ hl.bind("SUPER + CONTROL + 4", hl.dsp.exec_cmd(
 -- The switch device on this machine is "Apple SMC power/lid events"
 -- (the original said "Lid Switch", which is what it is called on most PCs).
 -- Verify with `hyprctl devices` once Hyprland is running.
+-- { locked = true } is NOT optional. Without it these behave like plain
+-- `bind =` rather than `bindl =` and are suppressed whenever the session is
+-- locked -- which is always the case around a suspend, because hypridle's
+-- before_sleep_cmd runs `loginctl lock-session`. Previously both binds were
+-- 2-argument calls with no options table, so neither had ever fired: the
+-- Hyprland log showed the lid device being detected and zero dispatches.
+--
+-- Behaviour now lives in scripts/lid so it can depend on AC vs battery.
 hl.bind("switch:on:Apple SMC power/lid events",
-    hl.dsp.exec_cmd([[hyprctl eval 'hl.monitor({output = "eDP-1", disabled = true})']]))
+    hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/lid close"),
+    { locked = true })
 hl.bind("switch:off:Apple SMC power/lid events",
-    hl.dsp.exec_cmd("hyprctl reload"))
+    hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/lid open"),
+    { locked = true })
