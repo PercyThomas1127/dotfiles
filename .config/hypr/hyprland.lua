@@ -49,19 +49,35 @@ local appFinder   = "rofi -show drun"
 --   screensharing.sh -- killalls the portals and restarts them by hand;
 --                       Hyprland + xdg-desktop-portal-hyprland handle this
 --                       via systemd now, so it does more harm than good.
--- Wallpaper: the rice calls swaybg. hyprlax is kept instead -- it renders the
--- image and adds workspace parallax. wallpaper.png is 2560x1440, leaving only
--- ~284px of horizontal travel at this resolution, so the parallax is subtle.
--- The rice's AnimeWaiting.png (3000x1440) is still in ~/.config/hypr/wallpapers/
--- if you ever want more movement.
+-- Wallpaper: the rice calls swaybg; mpvpaper is used instead so the wallpaper
+-- can be a looping video. Source was 3840x2160 @60fps H.264 High, which decoded
+-- at only 2.90x realtime on this machine -- there is NO hardware H.264 decode
+-- here (the installed VAAPI drivers are all AMD/NVIDIA/virtio). Re-encoded to
+-- 2560x1440 @15fps with the audio track stripped: 61MB -> 7.4MB, and decode
+-- went to 11.19x realtime.
+--   -p -a MAX  SUPPOSED to pause decoding when the wallpaper is covered, but
+--              MEASURED ON HYPRLAND IT DOES NOT WORK: 37% of a core visible
+--              vs 35% covered. -s (auto-stop) is no better (38%/43%).
+--              mpvpaper's own help warns the auto options "may vary based on
+--              compositor behavior"; Hyprland keeps sending frame callbacks
+--              to the occluded background layer. Flags left on in case a
+--              future Hyprland or mpvpaper release makes them work.
+--              Real steady cost: ~37% of ONE core (~5% of 8 cores), forever.
+--              If that hurts battery, re-encode at 10fps or 1920 wide.
+--   panscan=1.0  the video is 16:9 on a 16:10 panel; without this you get
+--                letterbox bars. Fills by cropping ~284px horizontally.
+--   hwdec=no   no working VAAPI driver, so don't waste startup failing over.
+-- swww was considered and rejected: it caches every decoded frame, and the
+-- 761-frame 4K GIF version needed 23.5 GiB of raw frames on a 7.3 GiB machine.
 hl.on("hyprland.start", function ()
   hl.exec_cmd(table.concat({
     "waybar",
     "dunst",
-    os.getenv("HOME") .. "/.local/bin/hyprlax " .. os.getenv("HOME") .. "/Pictures/wallpaper.png",
+    "mpvpaper -f -p -a MAX -o 'no-audio loop-file=inf panscan=1.0 hwdec=no' '*' "
+        .. os.getenv("HOME") .. "/Videos/cherry-blossom-wallpaper.mp4",
     -- MPRIS music control bar (github.com/shantanubaddar/hyprwave), built from
-    -- source and installed to ~/.local/bin. Absolute path for the same reason
-    -- as hyprlax: Hyprland's exec does not reliably inherit the login PATH.
+    -- source and installed to ~/.local/bin. Absolute path because Hyprland's
+    -- exec does not reliably inherit the login PATH.
     -- Anchored to the bottom edge in ~/.config/hyprwave/config.conf so it does
     -- not collide with waybar at the top.
     os.getenv("HOME") .. "/.local/bin/hyprwave",
@@ -122,7 +138,7 @@ hl.config({
         -- PERFORMANCE WARNING (this machine specifically):
         -- These are the rice's values. size 13 x 3 passes is very heavy blur.
         -- The Asahi Mesa driver on this M1 already showed it struggles with
-        -- multi-pass blur -- hyprlax's blurred multi-layer scene ran at ~2 FPS
+        -- multi-pass blur -- a blurred multi-layer wallpaper scene ran at ~2 FPS
         -- against ~62 FPS unblurred. If the desktop feels sluggish, swap in
         -- the commented values below; they keep the look and cost far less.
         blur = {
@@ -175,7 +191,7 @@ hl.animation({ leaf = "fade",       enabled = true, speed = 10,  bezier = "defau
 hl.animation({ leaf = "workspaces", enabled = true, speed = 8.8, bezier = "overshot", style = "slide" })
 hl.animation({ leaf = "border",     enabled = true, speed = 14,  bezier = "default" })
 
--- Layer surfaces (waybar, hyprwave, hyprlax). The rice never set these, so
+-- Layer surfaces (waybar, hyprwave, mpvpaper). The rice never set these, so
 -- they inherited defaults and came in with a different feel from how they
 -- went out. Setting In and Out identically makes it symmetric. speed is in
 -- units of ~100ms, so 4 roughly matches hyprwave's own ~400ms hide.

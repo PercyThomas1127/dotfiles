@@ -57,14 +57,13 @@ If `checkout` complains, move the offending files aside and run it again.
 ## Dependencies
 
 ```bash
-sudo dnf install waybar rofi dunst cava pamixer swaybg kitty \
+sudo dnf install waybar rofi dunst cava pamixer swaybg kitty mpvpaper \
                  hyprlock hypridle hyprpicker grim slurp \
                  playerctl brightnessctl jq fontawesome-fonts-all
 ```
 
 Built from source into `~/.local/bin` (not packaged for Fedora):
 
-- [hyprlax](https://github.com/sandwichfarm/hyprlax) — parallax wallpaper daemon
 - [hyprwave](https://github.com/shantanubaddar/hyprwave) — MPRIS music control bar
 
 Fonts — **Nerd Fonts v3 or newer**, installed to `~/.local/share/fonts`:
@@ -111,6 +110,19 @@ Scale must divide the panel resolution evenly: `2560 / 1.6 = 1600`.
 - **`.conf` is deprecated.** Hyprland loads `hyprland.lua` in preference to
   `hyprland.conf`, and `.conf` support is removed in 0.57. The old file is
   kept for reference only and is ignored.
+- **The wallpaper is a looping video via `mpvpaper`**, not a static image.
+  `~/Videos/cherry-blossom-wallpaper.mp4` — re-encoded from a 3840x2160 @60fps
+  source down to 2560x1440 @15fps with the audio stripped (61MB → 7.4MB), which
+  took decode from 2.90x to 11.19x realtime. There is **no hardware H.264
+  decode** on this machine, so the source resolution mattered a lot.
+  It costs a steady **~37% of one core** (~5% of 8). mpvpaper's `-p`/`-s`
+  auto-pause flags are set but **do not work under Hyprland** — measured 37%
+  visible vs 35% covered — because Hyprland keeps sending frame callbacks to
+  the occluded background layer. Re-encode at 10fps or 1920 wide if battery
+  matters more than smoothness.
+  `swww` was evaluated and rejected: it caches every decoded frame, and the
+  761-frame 4K GIF version of this wallpaper needed **23.5 GiB** of raw frames
+  on a 7.3 GiB machine.
 - **Do NOT "fix" the `!important` in hyprwave's stylesheet.**
   `~/.local/share/hyprwave/style.css` contains, in its `.no-transition` rule:
   ```css
@@ -139,6 +151,5 @@ Scale must divide the panel resolution evenly: `2560 / 1.6 = 1600`.
 ## Credits
 
 - [1amSimp1e/dots](https://github.com/1amSimp1e/dots) — Balcony rice
-- [sandwichfarm/hyprlax](https://github.com/sandwichfarm/hyprlax)
 - [shantanubaddar/hyprwave](https://github.com/shantanubaddar/hyprwave)
 - weather via [wttr.in](https://wttr.in)
