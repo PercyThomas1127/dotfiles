@@ -157,8 +157,8 @@ hl.config({
     },
 
     misc = {
-        disable_hyprland_logo    = true,
-        disable_splash_rendering = true,
+        disable_hyprland_logo    = false,
+        disable_splash_rendering = false,
         mouse_move_enables_dpms  = true,
         -- Was unset (false), so only trackpad movement woke a DPMS-off display
         -- and a keystroke did nothing.
@@ -215,7 +215,7 @@ hl.config({
 
         touchpad = {
             natural_scroll       = true,
-            disable_while_typing = true,
+            disable_while_typing = false,
             -- This trackpad is a clickpad (one physical button). Without
             -- clickfinger_behavior, libinput uses "button areas": right-click
             -- only fires when you press the bottom-right CORNER, so a
