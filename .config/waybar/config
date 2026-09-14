@@ -2,7 +2,7 @@
     "height": 40, // Waybar height (to be removed for auto height)
     "layer": "top", // Waybar at top layer
     "modules-left": ["custom/launcher", "cpu", "memory", "hyprland/workspaces", "custom/weather"],
-    "modules-center": ["custom/spotify"],
+    "modules-center": ["group/media"],
     "modules-right": ["tray", "bluetooth", "network", "pulseaudio",  "backlight", "battery", "custom/lock", "clock", "custom/power-menu"],
     "hyprland/workspaces": {
       "format": "{icon}",
@@ -101,9 +101,36 @@
        "on-click": "swaylock",
        "format" : "",
     },
+    // The art and the title are two widgets that must look like one pill.
+    // Grouping them is what makes that safe: the GROUP carries the pill
+    // background, so an empty image contributes nothing instead of leaving a
+    // stray stub floating at bar centre when there is no artwork.
+    "group/media": {
+        "orientation": "horizontal",
+        "modules": ["image", "custom/spotify"]
+    },
+    "image": {
+        "exec": "~/.config/waybar/scripts/albumart",
+        // On-screen size in logical px. Required: with "size" omitted waybar
+        // clamps the image to roughly 16px whatever the file contains
+        // (measured -- a 36px and a 64px source both rendered identically).
+        // It fits the image into a size x size box preserving aspect, which
+        // is why scripts/albumart centre-crops to a square; see its header.
+        // Keep in step with min-height on #custom-spotify.has-art in
+        // style.css, or the two halves of the pill stop matching.
+        // 48 = 38px of art + the 10px left inset the PNG carries as transparent
+        // pixels (see scripts/albumart). The art itself is the 18.5px label
+        // plus ~20, and the largest that still fits: 38 + 4 + 17 = 59 of 60.
+        "size": 48,
+        "signal": 5,
+        // Would otherwise show the cache file path on hover.
+        "tooltip": false,
+        "on-click": "playerctl play-pause",
+        "on-scroll-down": "playerctl previous"
+    },
     "custom/spotify": {
         "exec": "python3 ~/.config/waybar/scripts/mediaplayer.py",
-        "format": " {}",
+        "format": "{}",
         "return-type": "json",
         // Cap the rendered label so a long title can never push the side groups
         // around. max-length also switches the label to ELLIPSIZE_END, which is
@@ -114,8 +141,10 @@
         // the module. Escaping must happen HERE, after the script has sliced the
         // text -- never in the script, or a scroll window can split an entity.
         "escape": true,
-        // format has static content (the glyph), so without this a stray
-        // glyph-only pill floats at bar centre when no player is running.
+        // Kept as belt-and-braces. It was originally required because format
+        // carried the Spotify glyph, so an empty text still rendered a
+        // glyph-only pill at bar centre; format is bare "{}" now, but this
+        // still guards against a whitespace-only title.
         "hide-empty-text": true,
         // Defaults to true: waybar would respawn the continuous script on every
         // click, blanking the module and resetting the scroll position.

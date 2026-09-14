@@ -56,6 +56,47 @@ window#waybar.hidden {
   margin-bottom: 8.5px;
 }
 
+/* The media pill is TWO widgets -- waybar cannot draw an image inside a
+   custom module's text -- grouped so they read as one continuous pill.
+   The group carries the background and the rounding; the children carry the
+   PADDING. That split is load-bearing, and both halves of it were found the
+   hard way:
+     - background on the group, not the children, so a player with no artwork
+       leaves no empty styled stub where the image would be;
+     - padding on the children, not the group, so that when nothing is playing
+       at all and both children hide, the group collapses to zero size and
+       paints nothing. With padding on the group it stayed visible as a bare
+       pill floating at bar centre. */
+#media {
+  background-color: #252733;
+  border-radius: 8px;
+  padding: 0;
+  margin: 8.5px 4px;
+}
+
+/* Zero box on purpose. The image module never hides, so ANY padding or
+   margin here paints as a stray sliver when nothing is playing. The left
+   inset is baked into the PNG as transparent pixels instead. */
+#media #image {
+  background-color: transparent;
+  padding: 0;
+  margin: 0;
+}
+
+#media #custom-spotify {
+  background-color: transparent;
+  border-radius: 0;
+  padding: 2px 10px;
+  margin: 0;
+}
+
+/* Only with art: match the image's height so the pill is uniform. Must equal
+   "size" in the config. Without art the pill drops back to its natural height
+   and matches the rest of the bar. */
+#media #custom-spotify.has-art {
+  min-height: 38px;
+}
+
 #cpu {
   color: #fb958b;
 }

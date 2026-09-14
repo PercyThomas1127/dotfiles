@@ -3,6 +3,7 @@ import argparse
 import logging
 import sys
 import signal
+import subprocess
 import gi
 import json
 import unicodedata
@@ -108,12 +109,52 @@ def _set_marquee(body, prefix, player):
 
 
 
+# --------------------------------------------------------------- album art ---
+# The artwork itself is drawn by waybar's own image module (see "image" in
+# ~/.config/waybar/config), fed by scripts/albumart. This script's job is only
+# to say WHEN it changed and WHETHER there is any, because it is already
+# sitting on the MPRIS signals and waybar would otherwise have to poll.
+ART_SIGNAL = 5      # MUST match "signal" in the image module's config
+
+_last_art = None
+
+
+def _art_url(player):
+    try:
+        md = player.props.metadata
+        return str(md['mpris:artUrl']) if 'mpris:artUrl' in md.keys() else None
+    except Exception:
+        return None
+
+
+def _refresh_art(player):
+    """Tell waybar to re-read the artwork, but only when it actually changed.
+
+    Deliberately NOT called from write_output: that runs on every marquee
+    tick, several times a second, and firing pkill at that rate would cost
+    far more than the polling this replaces.
+    """
+    global _last_art
+    art = _art_url(player) if player is not None else None
+    if art == _last_art:
+        return
+    _last_art = art
+    # -x matches the process name exactly. A bare pattern would also match
+    # this script's own command line.
+    subprocess.run(['pkill', '-RTMIN+%d' % ART_SIGNAL, '-x', 'waybar'],
+                   check=False)
+
+
 def write_output(text, player, tooltip=''):
     logger.info('Writing output')
 
     output = {'text': text,
               'tooltip': tooltip or text,
-              'class': 'custom-' + player.props.player_name,
+              # has-art/no-art drives the merged-pill styling: with art the
+              # title squares off its left edge to butt against the image,
+              # without it the title must stay a normal rounded pill.
+              'class': ['custom-' + player.props.player_name,
+                        'has-art' if _art_url(player) else 'no-art'],
               'alt': player.props.player_name}
 
     sys.stdout.write(json.dumps(output) + '\n')
@@ -143,6 +184,7 @@ def on_metadata(player, metadata, manager):
     # status icon that scrolled off the edge and back would be bizarre, and
     # pinning it is what makes the width arithmetic exact.
     prefix = ' ' if (player.props.status != 'Playing' and track_info) else ''
+    _refresh_art(player)
     _set_marquee(track_info, prefix, player)
 
 
@@ -158,6 +200,8 @@ def on_player_vanished(manager, player):
     # Critical: without this the timer keeps firing against a dead player and
     # the module resurrects itself seconds after the player closed.
     _stop_marquee()
+    # Clear the artwork too, or the last cover outlives the player.
+    _refresh_art(None)
     _mq.update(body='', prefix='', player=None, offset=0, last=None)
     sys.stdout.write('\n')
     sys.stdout.flush()

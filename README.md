@@ -184,6 +184,30 @@ root-owned `0644`. No udev rule is needed; don't add one.
   A large "ms remaining" means the controller came back fast (~70ms). No such
   line after a resume is the real failure.
 
+- **The media pill is two waybar modules pretending to be one.** waybar cannot
+  draw an image inside a custom module's text, so the album art is a separate
+  `image` module grouped with `custom/spotify` as `group/media`. Three
+  non-obvious constraints hold it together, each found by breaking it:
+  - **`size` is not optional.** With it omitted the image is clamped to roughly
+    16px whatever the file contains — a 36px and a 64px source both rendered at
+    an identical 26 device px. `size` fits the image into a *square* box
+    preserving aspect, which is why `scripts/albumart` centre-crops: a 16:9
+    thumbnail left alone would render shorter than a square cover and the art
+    height would jump between tracks.
+  - **The background belongs on the group, the padding on the children.**
+    Background on the children leaves an empty styled stub where the image
+    would be when a player exposes no artwork; padding on the group leaves a
+    bare pill floating at bar centre when nothing is playing at all.
+  - **The `image` module never hides.** An empty one still paints any box CSS
+    gives it, so it gets zero padding and zero margin, and the art's left inset
+    is baked into the PNG as transparent pixels instead. The canvas is
+    `(art + inset) x art`, so `size` must equal art + inset — currently
+    `38 + 10 = 48`.
+
+  Track changes are pushed, not polled: `mediaplayer.py` sends `SIGRTMIN+5` to
+  waybar when the art URL changes, and deliberately not from `write_output`,
+  which runs on every marquee tick.
+
 - **Do NOT "fix" the `!important` in hyprwave's stylesheet.**
   `~/.local/share/hyprwave/style.css` contains, in its `.no-transition` rule:
   ```css
