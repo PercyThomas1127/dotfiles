@@ -31,6 +31,9 @@ local fileManager = "dolphin"
 local menu        = "wmenu-run"
 local browser     = "firefox"
 local editor      = "code"
+-- Vesktop is installed as a Flatpak (dev.vencord.Vesktop); there is no native
+-- binary on PATH, so the bare name would not launch.
+local chat        = "flatpak run dev.vencord.Vesktop"
 -- Same command as waybar's launcher button (waybar/config on-click), so the
 -- keybind and the button behave identically rather than adding a fourth
 -- launcher look. ~/.config/rofi/config.rasi enables drun,run,filebrowser,window
@@ -355,6 +358,7 @@ hl.bind("SUPER + RETURN", hl.dsp.exec_cmd(terminal))
 hl.bind("SUPER + SHIFT + F", hl.dsp.exec_cmd(fileManager))
 hl.bind("SUPER + SHIFT + G", hl.dsp.exec_cmd(browser))
 hl.bind("SUPER + SHIFT + V", hl.dsp.exec_cmd(editor))
+hl.bind("SUPER + SHIFT + D", hl.dsp.exec_cmd(chat))
 hl.bind("SUPER + E", hl.dsp.exec_cmd(appFinder))
 
 -- Clipboard history. The original used "clipvault", which is not installed here.
