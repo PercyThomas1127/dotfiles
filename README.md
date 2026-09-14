@@ -209,7 +209,9 @@ root-owned `0644`. No udev rule is needed; don't add one.
   which runs on every marquee tick.
 
 - **hyprwave is a local fork now**, at `~/Developer/hyprwave` (branch
-  `album-accent`), not the upstream build. Two commits on top of upstream: the
+  `album-accent`), pushed to the private repo
+  `PercyThomas1127/hyprwave` — `origin` is that fork, `upstream` is
+  `shantanubaddar/hyprwave`. Not the upstream build. Two commits on top of upstream: the
   visualizer bars take their hue from the current album cover, and the SIGUSR1
   handler no longer calls GTK from a signal handler (that was the crash that
   killed the bar on 2026-09-13). The original upstream binary and data tree are
