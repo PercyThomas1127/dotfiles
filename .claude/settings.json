@@ -1,0 +1,26 @@
+{
+  "effortLevel": "xhigh",
+  "model": "opus[1m]",
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME\"/.claude/hooks/notify-input-needed.sh Notification"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME\"/.claude/hooks/notify-input-needed.sh Stop"
+          }
+        ]
+      }
+    ]
+  }
+}
