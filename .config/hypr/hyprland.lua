@@ -421,8 +421,25 @@ hl.bind("XF86MonBrightnessDown",
     { locked = true, repeating = true })
 
 -- Keyboard backlight (LED class device "kbd_backlight" on this machine).
-hl.bind("XF86KbdBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -d kbd_backlight set +10%"), { locked = true, repeating = true })
-hl.bind("XF86KbdBrightnessDown", hl.dsp.exec_cmd("brightnessctl -d kbd_backlight set 10%-"), { locked = true, repeating = true })
+--
+-- SUPER + the display-brightness keys is the binding that actually works
+-- here. This machine's function row has NO keyboard-backlight keys: the
+-- Apple SPI Keyboard's capability bitmap advertises BRIGHTNESSUP/DOWN but
+-- not KBDILLUMUP/DOWN, so the XF86KbdBrightness binds below can never fire
+-- from the built-in keyboard. They are kept for an external keyboard that
+-- does have those keys, and point at the same script.
+--
+-- brightnessctl reaches this LED through logind's D-Bus; the sysfs node is
+-- root-owned, so no udev rule is needed and none should be added.
+local brightness = os.getenv("HOME") .. "/.config/hypr/scripts/brightness"
+hl.bind("SUPER + XF86MonBrightnessUp",
+    hl.dsp.exec_cmd(brightness .. " up kbd"),   { locked = true, repeating = true })
+hl.bind("SUPER + XF86MonBrightnessDown",
+    hl.dsp.exec_cmd(brightness .. " down kbd"), { locked = true, repeating = true })
+hl.bind("XF86KbdBrightnessUp",
+    hl.dsp.exec_cmd(brightness .. " up kbd"),   { locked = true, repeating = true })
+hl.bind("XF86KbdBrightnessDown",
+    hl.dsp.exec_cmd(brightness .. " down kbd"), { locked = true, repeating = true })
 
 -- Requires playerctl
 hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })

@@ -98,6 +98,19 @@ laptop. If you reuse this on other hardware, these are the things to change:
 
 Scale must divide the panel resolution evenly: `2560 / 1.6 = 1600`.
 
+**This keyboard has no backlight keys.** The function row is display
+brightness, not keyboard brightness — the `Apple SPI Keyboard` capability
+bitmap advertises `BRIGHTNESSUP`/`BRIGHTNESSDOWN` but not
+`KBDILLUMUP`/`KBDILLUMDOWN`, so any `XF86KbdBrightness*` bind is dead code on
+the built-in keyboard no matter what it points at. Keyboard backlight is
+therefore on **`SUPER` + the brightness keys**, handled by
+`scripts/brightness up|down kbd`. The `XF86KbdBrightness*` binds are kept for
+an external keyboard that does have those keys.
+
+`brightnessctl` writes `kbd_backlight` through logind's D-Bus, so it works
+unprivileged even though `/sys/class/leds/kbd_backlight/brightness` is
+root-owned `0644`. No udev rule is needed; don't add one.
+
 ## Notes and gotchas
 
 - **Log in via the `Hyprland (uwsm)` session.** The plain session never

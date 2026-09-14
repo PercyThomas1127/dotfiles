@@ -1,17 +1,42 @@
 #!/bin/sh
-# Adapted from the balcony rice for this machine.
-# Original used brillo + light (brillo is not packaged for Fedora); this uses
-# brightnessctl against apple-panel-bl, the backlight device on this MacBook.
-# Also fixes the rice's icon filenames: it asked for brightness-up.png but the
+# Backlight control with an on-screen level bar.
+#
+#   brightness <up|down> [panel|kbd]      default target is panel
+#
+# Adapted from the balcony rice for this machine. The original used brillo +
+# light (brillo is not packaged for Fedora); this uses brightnessctl. It also
+# fixes the rice's icon filenames: it asked for brightness-up.png but the
 # shipped assets are brightness_up.png.
+#
+# Both targets are driven through brightnessctl, which reaches the keyboard
+# LED through logind's D-Bus -- /sys/class/leds/kbd_backlight/brightness is
+# root-owned 0644, so a direct write would need a udev rule. Verified working
+# unprivileged.
 ICONS="$HOME/.config/dunst/assets/ui"
-DEV=apple-panel-bl
 
+case "${2:-panel}" in
+    panel)
+        # Not "intel_backlight" as the rice hardcoded.
+        DEV=apple-panel-bl; STEP=2;  LABEL=BRIGHTNESS; RID=2593 ;;
+    kbd)
+        # Coarser steps: this device has 255 levels but very little perceptual
+        # range, so 2% at a time would feel like nothing is happening.
+        # A separate replace-id keeps its bar from overwriting the panel's.
+        DEV=kbd_backlight;  STEP=10; LABEL=KEYBOARD;   RID=2594 ;;
+    *)
+        echo "usage: $0 {up|down} [panel|kbd]" >&2; exit 2 ;;
+esac
+
+# Field 4 of brightnessctl -m is the percentage, for both backlight and leds
+# class devices: "kbd_backlight,leds,0,0%,255".
 level() { brightnessctl -m -d "$DEV" | awk -F, '{sub(/%/,"",$4); print $4}'; }
 
+osd() { dunstify -a "$LABEL" "$1 to $2%" -h int:value:"$2" -i "$ICONS/$3" -r "$RID" -u normal; }
+
 case "$1" in
-  up)   brightnessctl -d "$DEV" set 2%+ >/dev/null
-        b=$(level); dunstify -a "BRIGHTNESS" "Increasing to $b%" -h int:value:"$b" -i "$ICONS/brightness_up.png" -r 2593 -u normal ;;
-  down) brightnessctl -d "$DEV" set 2%- >/dev/null
-        b=$(level); dunstify -a "BRIGHTNESS" "Decreasing to $b%" -h int:value:"$b" -i "$ICONS/brightness_down.png" -r 2593 -u normal ;;
+    up)   brightnessctl -d "$DEV" set "${STEP}%+" >/dev/null
+          osd Increasing "$(level)" brightness_up.png ;;
+    down) brightnessctl -d "$DEV" set "${STEP}%-" >/dev/null
+          osd Decreasing "$(level)" brightness_down.png ;;
+    *)    echo "usage: $0 {up|down} [panel|kbd]" >&2; exit 2 ;;
 esac
