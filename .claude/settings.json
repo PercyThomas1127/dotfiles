@@ -1,5 +1,5 @@
 {
-  "effortLevel": "xhigh",
+  "effortLevel": "max",
   "model": "opus[1m]",
   "hooks": {
     "Notification": [
