@@ -136,6 +136,26 @@ Scale must divide the panel resolution evenly: `2560 / 1.6 = 1600`.
   `swww` was evaluated and rejected: it caches every decoded frame, and the
   761-frame 4K GIF version of this wallpaper needed **23.5 GiB** of raw frames
   on a 7.3 GiB machine.
+- **Lid, suspend, and the DCP.** Closing the lid does NOT suspend: logind is
+  told to ignore the switch in `/etc/systemd/logind.conf.d/90-lid.conf`
+  (outside this repo, it lives in `/etc`), so lid handling belongs entirely to
+  `scripts/lid` via the Hyprland bind. On AC it blanks the panel with DPMS; on
+  battery it suspends.
+  This needs **kernel 7.1.13-402 or newer**. On 7.1.6-400 the display
+  controller never reinitialised on resume — 9/9 cycles came back to a black
+  screen needing a force power-off.
+  **Do not diagnose a resume failure by grepping for `IOAVVideoInterface open
+  failed`.** That line still appears on a perfectly good resume (3 times on
+  the verified-working cycle) and `dcp_poweron() done` does not exist on this
+  kernel at all, so the obvious greps both lie. The line that actually means
+  success is:
+  ```
+  journalctl -b | grep 'dcp_set_power_state_req returned'
+  # apple-dcp ...: dcp_set_power_state_req returned, 9930 ms remaining
+  ```
+  A large "ms remaining" means the controller came back fast (~70ms). No such
+  line after a resume is the real failure.
+
 - **Do NOT "fix" the `!important` in hyprwave's stylesheet.**
   `~/.local/share/hyprwave/style.css` contains, in its `.no-transition` rule:
   ```css

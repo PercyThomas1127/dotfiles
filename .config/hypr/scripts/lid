@@ -3,18 +3,26 @@
 #
 # Screen-off on AC; on battery, whatever LID_BATTERY_ACTION says below.
 #
-# WHY THE DEFAULT IS `blank` AND NOT `suspend`:
-# This machine's display controller fails to reinitialise on resume. Every
-# suspend/resume logs
-#     eoInterfaceIOAV.cpp:237: IOAVVideoInterface open failed
-# with no following `dcp_poweron() done`, and recovery requires a force
-# power-off. That was 9/9 suspend cycles on kernel 7.1.6-400.
+# HISTORY, AND HOW TO RE-TEST THIS PROPERLY:
+# On kernel 7.1.6-400 the display controller failed to reinitialise on
+# resume -- 9/9 suspend cycles came back to a black screen needing a force
+# power-off. That is why this was `blank` for a long time. Fixed by kernel
+# 7.1.13-402; verified on 2026-09-13 with a real suspend/wake.
 #
-# Before switching this to `suspend`, verify resume actually works:
-#     systemctl suspend      # with nothing unsaved, then wake
-#     journalctl -b | grep -E "IOAVVideoInterface open failed|dcp_poweron\(\) done"
-# Only flip it if you see `dcp_poweron() done` and no failure line.
-LID_BATTERY_ACTION=blank        # blank | suspend
+# DO NOT test it the way the old comment here said to. Two traps:
+#   * `IOAVVideoInterface open failed` STILL appears on a perfectly good
+#     resume -- it logged 3 times on the successful cycle. It is noise from
+#     DCP bring-up, not a failure.
+#   * `dcp_poweron() done` does not exist on this kernel, so grepping for it
+#     always "fails" no matter what.
+#
+# The message that actually distinguishes success is the power-state request
+# completing well inside its 10s budget:
+#     journalctl -b | grep -E 'dcp_set_power_state_req returned'
+#     -> apple-dcp ...: dcp_set_power_state_req returned, 9930 ms remaining
+# A large "ms remaining" means it came back fast (~70ms here). A hang, or no
+# such line at all after a resume, is the real failure.
+LID_BATTERY_ACTION=suspend      # blank | suspend
 
 # 1 = plugged in, 0 = on battery
 AC=$(cat /sys/class/power_supply/macsmc-ac/online 2>/dev/null || echo 1)
