@@ -112,9 +112,24 @@ Scale must divide the panel resolution evenly: `2560 / 1.6 = 1600`.
   kept for reference only and is ignored.
 - **The wallpaper is a looping video via `mpvpaper`**, not a static image.
   `~/Videos/cherry-blossom-wallpaper.mp4` — re-encoded from a 3840x2160 @60fps
-  source down to 2560x1440 @15fps with the audio stripped (61MB → 7.4MB), which
-  took decode from 2.90x to 11.19x realtime. There is **no hardware H.264
-  decode** on this machine, so the source resolution mattered a lot.
+  source to **2560x1600 @15fps**, audio stripped (61MB → 13MB). There is **no
+  hardware H.264 decode** on this machine, so source resolution matters a lot.
+  2560x1600 is the panel's exact resolution, so the video is neither upscaled
+  nor cropped at playback. Regenerate with:
+  ```sh
+  ffmpeg -i <source> -an -r 15 \
+    -vf "crop=3456:2160,scale=2560:1600:flags=lanczos" \
+    -c:v libx264 -crf 21 -preset medium -pix_fmt yuv420p out.mp4
+  ```
+  The crop takes the 16:9 source to 16:10 before scaling.
+  **Don't "upgrade" this to 4K.** Measured while playing: 4K costs 60% of a
+  core and 414MB resident, against 40% and 260MB here — and the panel is only
+  2560x1600, so 55% of those pixels are decoded and thrown away. The memory is
+  the real cost, because it is held even while the wallpaper is frozen, on a
+  machine that already sits ~4GB into swap. There is no quality to gain:
+  2560x1600 measures SSIM 0.961 / 38.0dB against a 4K source downscaled to
+  this same panel (the previous 2560x1440 measured 32.7dB, which is what
+  re-encoding actually fixed).
   Left alone it costs a steady **~40% of one core** (~5% of 8), forever.
   mpvpaper's own `-p`/`-a MAX` auto-pause **cannot work on a tiling
   compositor** and is deliberately not used: its two triggers are Wayland

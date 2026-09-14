@@ -50,11 +50,20 @@ local appFinder   = "rofi -show drun"
 --                       Hyprland + xdg-desktop-portal-hyprland handle this
 --                       via systemd now, so it does more harm than good.
 -- Wallpaper: the rice calls swaybg; mpvpaper is used instead so the wallpaper
--- can be a looping video. Source was 3840x2160 @60fps H.264 High, which decoded
--- at only 2.90x realtime on this machine -- there is NO hardware H.264 decode
--- here (the installed VAAPI drivers are all AMD/NVIDIA/virtio). Re-encoded to
--- 2560x1440 @15fps with the audio track stripped: 61MB -> 7.4MB, and decode
--- went to 11.19x realtime.
+-- can be a looping video. Source was 3840x2160 @60fps H.264 High -- there is
+-- NO hardware H.264 decode here (the installed VAAPI drivers are all
+-- AMD/NVIDIA/virtio), so it is re-encoded to the panel's exact resolution,
+-- 2560x1600 @15fps, audio stripped: 61MB -> 13MB. Regenerate with:
+--   ffmpeg -i <source> -an -r 15 -vf "crop=3456:2160,scale=2560:1600:flags=lanczos" \
+--          -c:v libx264 -crf 21 -preset medium -pix_fmt yuv420p out.mp4
+-- The crop takes the 16:9 source to 16:10 before scaling, so the result is
+-- 1:1 with the panel and is neither upscaled nor cropped at playback.
+-- DO NOT "upgrade" this to 4K. Measured while playing: 4K costs 60% of a
+-- core and 414MB resident versus 40% and 260MB here, and the panel is only
+-- 2560x1600 so 55% of those pixels are thrown away. The memory is the real
+-- cost -- it is held even while frozen, on a machine that already runs ~4GB
+-- into swap. Quality gain is nil: 2560x1600 measures SSIM 0.961 / 38.0dB
+-- against 4K downscaled to this same panel.
 -- mpvpaper's own -p/-a MAX auto-pause is DELIBERATELY NOT USED: it cannot
 -- work on a tiling compositor. Its two triggers are Wayland frame callbacks
 -- (Hyprland keeps sending them to a fully covered background layer) and
@@ -64,8 +73,9 @@ local appFinder   = "rofi -show drun"
 -- flags on as well would mean two things writing mpv's pause property.
 --   input-ipc-server  the socket wlpause drives. It also lets wlpause find
 --                     the socket on its own, by reading this command line.
---   panscan=1.0  the video is 16:9 on a 16:10 panel; without this you get
---                letterbox bars. Fills by cropping ~284px horizontally.
+--   panscan=1.0  a no-op now that the video is encoded at the panel's own
+--                16:10 aspect, but kept so that a 16:9 replacement fills the
+--                screen instead of showing letterbox bars.
 --   hwdec=no   no working VAAPI driver, so don't waste startup failing over.
 -- swww was considered and rejected: it caches every decoded frame, and the
 -- 761-frame 4K GIF version needed 23.5 GiB of raw frames on a 7.3 GiB machine.
