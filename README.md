@@ -208,6 +208,30 @@ root-owned `0644`. No udev rule is needed; don't add one.
   waybar when the art URL changes, and deliberately not from `write_output`,
   which runs on every marquee tick.
 
+- **hyprwave is a local fork now**, at `~/Developer/hyprwave` (branch
+  `album-accent`), not the upstream build. Two commits on top of upstream: the
+  visualizer bars take their hue from the current album cover, and the SIGUSR1
+  handler no longer calls GTK from a signal handler (that was the crash that
+  killed the bar on 2026-09-13). The original upstream binary and data tree are
+  backed up under `~/.local/share/hyprwave-backup-*/`, with a restore recipe in
+  that directory.
+  - **Never run `make install` for it.** It overwrites `style.css`,
+    `style-layout.css`, all 12 icons, all 14 themes, the font (and runs
+    `fc-cache`) and `hyprwave-toggle` — not just the binary. Install by hand:
+    `install -Dm755 hyprwave ~/.local/bin/hyprwave`. None of the data files
+    need to change.
+  - **The visualizer colour is NOT in the stylesheet.** `.visualizer-bar` there
+    is only the *template*: the accent is applied at runtime by a second
+    `GtkCssProvider` at `PRIORITY_USER + 1`, because `load_css()` installs the
+    theme at `PRIORITY_USER` and anything lower loads fine and silently never
+    shows. Editing `style.css` still sets the fallback colour and the
+    saturation/lightness the tint reuses.
+  - **Launching hyprwave while it is already running does NOT no-op** — it is a
+    GtkApplication, so the second launch activates the first instance, whose
+    handler builds *another* bar. You get a duplicate pill stacked on the
+    working one. Kill the old instance first. This is upstream behaviour, not
+    something the fork introduced.
+
 - **Do NOT "fix" the `!important` in hyprwave's stylesheet.**
   `~/.local/share/hyprwave/style.css` contains, in its `.no-transition` rule:
   ```css
