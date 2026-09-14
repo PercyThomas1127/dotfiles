@@ -115,11 +115,24 @@ Scale must divide the panel resolution evenly: `2560 / 1.6 = 1600`.
   source down to 2560x1440 @15fps with the audio stripped (61MB → 7.4MB), which
   took decode from 2.90x to 11.19x realtime. There is **no hardware H.264
   decode** on this machine, so the source resolution mattered a lot.
-  It costs a steady **~37% of one core** (~5% of 8). mpvpaper's `-p`/`-s`
-  auto-pause flags are set but **do not work under Hyprland** — measured 37%
-  visible vs 35% covered — because Hyprland keeps sending frame callbacks to
-  the occluded background layer. Re-encode at 10fps or 1920 wide if battery
-  matters more than smoothness.
+  Left alone it costs a steady **~40% of one core** (~5% of 8), forever.
+  mpvpaper's own `-p`/`-a MAX` auto-pause **cannot work on a tiling
+  compositor** and is deliberately not used: its two triggers are Wayland
+  frame callbacks (Hyprland keeps sending them to a fully occluded background
+  layer) and `zwlr_foreign_toplevel` state (tiled windows report neither
+  `fullscreen` nor `maximized`). Measured 37% visible vs 35% covered, i.e. no
+  saving at all.
+  Pausing is instead handled by **`wlpause --freeze`** (`~/Developer/wlpause`,
+  written for this problem), which measures how much of the output is actually
+  covered and drives mpv over the IPC socket given by `input-ipc-server`.
+  Measured while fully covered: **40% → 0%**, with wlpause itself at 0%.
+  `--freeze` is what gets the last 10%: pausing mpv only stops *decoding*,
+  while its video output keeps redrawing the same frame, so the process is
+  also SIGSTOPped. It is resumed on exit and on any output change, so the
+  wallpaper cannot get stuck frozen.
+  Note the two settings are coupled: if you remove `input-ipc-server` from
+  the mpvpaper line, wlpause has nothing to talk to and silently gives up
+  after 30s.
   `swww` was evaluated and rejected: it caches every decoded frame, and the
   761-frame 4K GIF version of this wallpaper needed **23.5 GiB** of raw frames
   on a 7.3 GiB machine.

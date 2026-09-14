@@ -55,15 +55,15 @@ local appFinder   = "rofi -show drun"
 -- here (the installed VAAPI drivers are all AMD/NVIDIA/virtio). Re-encoded to
 -- 2560x1440 @15fps with the audio track stripped: 61MB -> 7.4MB, and decode
 -- went to 11.19x realtime.
---   -p -a MAX  SUPPOSED to pause decoding when the wallpaper is covered, but
---              MEASURED ON HYPRLAND IT DOES NOT WORK: 37% of a core visible
---              vs 35% covered. -s (auto-stop) is no better (38%/43%).
---              mpvpaper's own help warns the auto options "may vary based on
---              compositor behavior"; Hyprland keeps sending frame callbacks
---              to the occluded background layer. Flags left on in case a
---              future Hyprland or mpvpaper release makes them work.
---              Real steady cost: ~37% of ONE core (~5% of 8 cores), forever.
---              If that hurts battery, re-encode at 10fps or 1920 wide.
+-- mpvpaper's own -p/-a MAX auto-pause is DELIBERATELY NOT USED: it cannot
+-- work on a tiling compositor. Its two triggers are Wayland frame callbacks
+-- (Hyprland keeps sending them to a fully covered background layer) and
+-- zwlr_foreign_toplevel state (tiled windows report neither "fullscreen" nor
+-- "maximized"). Measured: 37% of a core visible vs 35% covered, i.e. no
+-- saving at all. Pausing is handled by wlpause below instead; leaving the
+-- flags on as well would mean two things writing mpv's pause property.
+--   input-ipc-server  the socket wlpause drives. It also lets wlpause find
+--                     the socket on its own, by reading this command line.
 --   panscan=1.0  the video is 16:9 on a 16:10 panel; without this you get
 --                letterbox bars. Fills by cropping ~284px horizontally.
 --   hwdec=no   no working VAAPI driver, so don't waste startup failing over.
@@ -73,8 +73,22 @@ hl.on("hyprland.start", function ()
   hl.exec_cmd(table.concat({
     "waybar",
     "dunst",
-    "mpvpaper -f -p -a MAX -o 'no-audio loop-file=inf panscan=1.0 hwdec=no' '*' "
+    "mpvpaper -f -o 'no-audio loop-file=inf panscan=1.0 hwdec=no "
+        .. "input-ipc-server=/tmp/mpvsocket' '*' "
         .. os.getenv("HOME") .. "/Videos/cherry-blossom-wallpaper.mp4",
+    -- Pauses the wallpaper whenever it is actually covered, measuring real
+    -- geometric coverage of the output rather than just counting windows, so
+    -- a small floating window does not freeze a wallpaper you can still see.
+    -- Written for this problem; see ~/Developer/wlpause.
+    --   --freeze  also SIGSTOPs mpvpaper while hidden. Pausing mpv alone only
+    --             stops DECODING; its video output keeps redrawing the same
+    --             frame because Hyprland keeps handing it frame callbacks.
+    --             Measured fully covered: 40% of a core with no pauser, 10%
+    --             paused, 0% frozen. It is resumed on exit, and on any change
+    --             to the set of outputs, so a frozen wallpaper cannot get
+    --             stuck. Absolute path: Hyprland's exec does not reliably
+    --             inherit the login PATH.
+    os.getenv("HOME") .. "/.local/bin/wlpause --freeze",
     -- MPRIS music control bar (github.com/shantanubaddar/hyprwave), built from
     -- source and installed to ~/.local/bin. Absolute path because Hyprland's
     -- exec does not reliably inherit the login PATH.
