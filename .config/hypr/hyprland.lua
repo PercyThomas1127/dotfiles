@@ -322,7 +322,11 @@ hl.window_rule({
 
 -- Transparency. The rice targets VSCodium; this machine has VS Code (class "code").
 hl.window_rule({ name = "opacity-dolphin",  match = { class = "^(org.kde.dolphin)$" }, opacity = 0.92 })
-hl.window_rule({ name = "opacity-discord",  match = { class = "(?i)discord" },         opacity = 0.96 })
+-- Vesktop reports class "vesktop", not "discord", so a bare (?i)discord never
+-- matched it and the window stayed fully opaque. The (?i) is inside the group
+-- so the flag covers both alternatives rather than just the first.
+-- 0.90 matches the VS Code rule below.
+hl.window_rule({ name = "opacity-discord",  match = { class = "(?i)(discord|vesktop)" }, opacity = 0.90 })
 hl.window_rule({ name = "opacity-code",     match = { class = "^(code)$" },            opacity = 0.90 })
 hl.window_rule({ name = "opacity-obsidian", match = { class = "(?i)obsidian" },        opacity = 0.88 })
 -- The portal file dialog (Save As / Upload File). Matches VS Code's 0.90 so it
