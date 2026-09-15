@@ -113,6 +113,19 @@ hl.on("hyprland.start", function ()
     -- the watcher reads the real state from the compositor (hiding destroys
     -- hyprwave's layer surface) and toggles only on mismatch.
     os.getenv("HOME") .. "/.config/hypr/scripts/hyprwave-autohide",
+    -- Loudness normalisation, so every track plays at the same perceived
+    -- volume -- the thing Spotify's desktop app calls "Normalize volume" and
+    -- the web player does not expose. EasyEffects' Autogain measures EBU R128
+    -- in real time and rides the gain to a target of -16 LUFS (see
+    -- ~/.config/easyeffects/db/autogainrc).
+    --   --service-mode  runs it headless. NOT --gapplication-service, which
+    --                   is deprecated in EasyEffects 8.
+    -- Two settings in easyeffectsrc [General] make this work without breaking
+    -- anything: processAllOutputs grabs app streams without having to make
+    -- easyeffects_sink the default, and useDefaultOutputDevice forwards to
+    -- whatever the current default is -- which on speakers is the j313
+    -- convolver, so Asahi's speaker protection stays in the chain.
+    "easyeffects --service-mode",
     "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP",
     "systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP",
     -- kept from the previous setup: these are unrelated to the rice

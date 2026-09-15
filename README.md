@@ -164,6 +164,42 @@ root-owned `0644`. No udev rule is needed; don't add one.
   `swww` was evaluated and rejected: it caches every decoded frame, and the
   761-frame 4K GIF version of this wallpaper needed **23.5 GiB** of raw frames
   on a 7.3 GiB machine.
+- **Loudness normalisation lives in EasyEffects, not in the player.** Every
+  track plays at the same perceived volume — what Spotify's desktop app calls
+  "Normalize volume", which the web player does not expose. `Autogain` measures
+  EBU R128 in real time and targets **−16 LUFS**
+  (`.config/easyeffects/db/autogainrc`), started headless from
+  `hyprland.lua` with `easyeffects --service-mode` (**not**
+  `--gapplication-service`, deprecated in EasyEffects 8).
+  Measured on pink noise 6 dB apart, which is a realistic mastering spread:
+  −14/−20 LUFS in became −15.6/−16.8 out, i.e. **1.2 dB apart**. A pathological
+  16 dB spread only closed to 3.7 dB, because Autogain is reactive and a track
+  needing +18 dB takes time to ramp.
+  **`easyeffectsrc` is deliberately NOT tracked** — it caches the current
+  device names, including the Bluetooth MAC of the headphones, and this repo is
+  public. Recreate its `[General]` section by hand:
+  ```ini
+  [General]
+  processAllOutputs=true        # grab app streams without making
+                                # easyeffects_sink the default sink
+  useDefaultOutputDevice=true   # follow the default sink
+  useDefaultInputDevice=true    # same for input
+  ```
+  ```ini
+  [StreamOutputs]
+  plugins=autogain#0,bass_enhancer#0   # autogain FIRST, so tone shaping
+                                       # sees an already-levelled signal
+  ```
+  **`useDefaultOutputDevice` is what keeps the speakers safe.** The speaker
+  path runs through `audio_effect.j313-convolver`, Asahi's speaker protection,
+  and that convolver *is* the default sink when speakers are selected — so
+  following the default keeps EasyEffects feeding it rather than the raw
+  `alsa_output.platform-sound` sink. Never point `outputDevice` at that raw
+  sink: it bypasses protection and risks the hardware.
+  Plugin config is KConfig-style rc files (EasyEffects 8 dropped gsettings),
+  one per plugin, sectioned `[soe][Autogain#0]` — `soe` for output, `sie` for
+  input.
+
 - **Lid, suspend, and the DCP.** Closing the lid does NOT suspend: logind is
   told to ignore the switch in `/etc/systemd/logind.conf.d/90-lid.conf`
   (outside this repo, it lives in `/etc`), so lid handling belongs entirely to
