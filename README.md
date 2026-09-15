@@ -279,7 +279,7 @@ root-owned `0644`. No udev rule is needed; don't add one.
   `album-accent`), pushed to the private repo
   `PercyThomas1127/hyprwave-album-accent` — deliberately NOT named
   `hyprwave`, so it cannot be mistaken for upstream. `origin` is that repo,
-  `upstream` is `shantanubaddar/hyprwave`. Not the upstream build. Four commits
+  `upstream` is `shantanubaddar/hyprwave`. Not the upstream build. Five commits
   on top of upstream: the visualizer bars take their hue from the current album
   cover; GTK is no longer called from signal context (that was the crash that
   killed the bar on 2026-09-13); all five signals now arrive through a
@@ -322,7 +322,26 @@ root-owned `0644`. No udev rule is needed; don't add one.
 
     So: `SIGRTMIN+3` = show, `SIGRTMIN+4` = hide, both idempotent, and the
     script asserts the state it wants without reading anything back.
-    `SIGUSR1` still toggles, for `hyprwave-toggle`. The other four handlers
+    `SIGUSR1` still toggles, for `hyprwave-toggle`.
+
+    - **Idempotent must mean "compare against reality", not "compare against a
+      flag".** The first version of that setter returned early when its own
+      `is_visible` boolean already matched the request. Something unmaps the
+      window behind the app's back — seen across a 47-minute s2idle suspend —
+      leaving `is_visible` TRUE with no surface, after which every assert-show
+      returned early and **the bar was gone until the process was restarted**.
+      A hide-then-show was the only manual recovery. It now compares the actual
+      widgets, so a desync self-heals on the next heartbeat.
+
+      Relatedly, `on_window_hide_complete` used to unmap purely because the
+      revealer had collapsed. It fires on `notify::child-revealed` and re-reads
+      the *current* value, so a show landing mid-animation could be clobbered
+      by the collapse it had just reversed — instrumentation caught that window
+      open for 155ms. It is now gated on `!is_visible`.
+
+      The original trigger was never reproduced: DPMS off/on leaves the surface
+      alone, and 40 randomised hide/show races found nothing. The fix targets
+      recoverability instead, which is the property that actually matters. The other four handlers
     were also still calling GTK (`handle_sigusr2`) or `g_idle_add` (the
     `SIGRTMIN` trio) from signal context — the same unsafety as the original
     crash — and all of them now go through the pipe.
@@ -391,6 +410,25 @@ root-owned `0644`. No udev rule is needed; don't add one.
     stopped the `429`s; see the comments in that file. Both problems produced
     the same complaint ("it lags"), but they are unrelated — one was a shared
     API quota, the other a round trip.
+
+- **`playerctl status` with no `-p` follows ONE arbitrary player**, and that
+  silently broke `hyprwave-autohide` for a long time. Firefox registers an MPRIS
+  player permanently once any tab has played media, and it sorts before
+  `spotify_player`, so the script read *Firefox's* status: measured
+  `playerctl -a status` printing `Paused\nPlaying` while plain
+  `playerctl status` printed `Paused`. The bar stayed hidden through an entire
+  album with no indication why. Use `playerctl -a status` and match any
+  `Playing` line.
+  - Worth knowing that hyprwave's own `preference = firefox,spotify,vlc` has
+    the same shape of problem in reverse: with Firefox registered it *displays*
+    Firefox even when Spotify is the one playing. That is a preference, not a
+    bug — reorder it if the bar should favour Spotify.
+  - Residual latency for the bar appearing is ~1.2s, and it is **not** in our
+    code: hyprwave answers a signal in 0.022s and spotify_player's MPRIS
+    property updates in 0.2s, but the D-Bus *change signal* that
+    `playerctl --follow` waits for arrives ~1.0s late, which is souvlaki's
+    1-second event cadence. `stdbuf -oL` makes no difference — it is not
+    output buffering.
 
 - **Do NOT "fix" the `!important` in hyprwave's stylesheet.**
   `~/.local/share/hyprwave/style.css` contains, in its `.no-transition` rule:

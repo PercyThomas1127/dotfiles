@@ -21,9 +21,18 @@
 
 HEARTBEAT=10   # seconds; see the loop at the bottom for why this is needed
 
-# Strict: only while actually Playing, so pausing hides the bar. That is fine
-# here because pausing is done with the keyboard media key, not from the bar.
-want_shown() { [ "$(playerctl status 2>/dev/null)" = "Playing" ]; }
+# Strict: only while something is actually Playing, so pausing hides the bar.
+# That is fine here because pausing is done with the keyboard media key, not
+# from the bar.
+#
+# `-a`, and match ANY player. Plain `playerctl status` with no player picks ONE
+# player and silently follows it, which was a real bug: Firefox registers an
+# MPRIS player permanently once any tab has played media, sorts before
+# spotify_player, and so reported ITS "Paused" while Spotify was Playing. The
+# bar then stayed hidden through an entire album with no indication why.
+# Measured: `playerctl -a status` printed "Paused\nPlaying" while plain
+# `playerctl status` printed "Paused".
+want_shown() { playerctl -a status 2>/dev/null | grep -q '^Playing$'; }
 
 # NOTE: `kill -s USR1`, NOT `kill -SIGUSR1`. The SIG-prefixed form is a bash
 # extension; under POSIX sh it fails with "invalid signal specification" and
