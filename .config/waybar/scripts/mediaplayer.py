@@ -138,11 +138,25 @@ def _refresh_art(player):
     art = _art_url(player) if player is not None else None
     if art == _last_art:
         return
+    had_art = _last_art is not None
     _last_art = art
-    # -x matches the process name exactly. A bare pattern would also match
-    # this script's own command line.
-    subprocess.run(['pkill', '-RTMIN+%d' % ART_SIGNAL, '-x', 'waybar'],
-                   check=False)
+
+    # -x matches the process name exactly throughout here. A bare pattern
+    # would also match this script's own command line.
+    if art is None and had_art:
+        # Losing the artwork needs a RELOAD, not a refresh. waybar's image
+        # module never clears: handed no path it just keeps drawing the last
+        # cover it loaded, so closing a tab left the previous album sitting
+        # there next to a collapsed pill. Nothing the script can emit fixes
+        # it -- a transparent placeholder still occupies a sliver of pill.
+        # Only destroying and recreating the module releases the pixbuf.
+        #
+        # Deliberately scoped to this one transition. It reloads the whole
+        # bar, so it must not fire on ordinary track changes.
+        subprocess.run(['pkill', '-SIGUSR2', '-x', 'waybar'], check=False)
+    else:
+        subprocess.run(['pkill', '-RTMIN+%d' % ART_SIGNAL, '-x', 'waybar'],
+                       check=False)
 
 
 def write_output(text, player, tooltip=''):
