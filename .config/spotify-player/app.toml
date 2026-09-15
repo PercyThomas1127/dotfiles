@@ -1,0 +1,34 @@
+# spotify-player, built from source because Spotify ships no aarch64 client.
+#
+# The whole reason this exists: normalization. Spotify measures each track's
+# loudness once, offline, and stores a ReplayGain value in the stream; librespot
+# reads that value and applies it as ONE constant gain for the whole track. That
+# is why quiet passages stay quiet -- unlike a real-time autogain, which rides
+# the level and flattens a track's internal dynamics.
+# Our OWN Spotify application, for a private Web API quota.
+#
+# By default spotify-player uses ncspot's client ID, which is shared by every
+# ncspot and spotify-player user who never changed it. Quota is per client ID,
+# not per account, so that bucket is permanently exhausted by aggregate usage:
+# a 58-minute session logged 21 `429 Too Many Requests` with Retry-After of
+# 1-20s, while our own traffic was only ~2 requests/minute. Each track change
+# fired GET /me/player, got refused, and waited out the backoff -- so the title
+# and album art in waybar landed ~10s after the song had already changed.
+# librespot itself was never late: it reports the new track 0.3ms after the old
+# one ends.
+#
+# Read from a file rather than inlined, because ~/.dotfiles is PUBLIC. See the
+# matching note in ~/.gitignore.
+#
+# Do NOT try to fix the lag with playback_refresh_duration_in_ms instead: that
+# adds steady polling to an already-exhausted bucket and trips MORE 429s.
+#
+# ncspot's ID stays as an automatic fallback, which is deliberate upstream
+# behaviour -- it has extended quota access to endpoints that newly-registered
+# apps can no longer call, so browse and personalized content keep working.
+client_id_command = { command = "cat", args = ["/home/yijunchen/.local/share/spotify-player/client_id"] }
+
+[device]
+normalization = true
+bitrate = 320          # Premium only
+audio_cache = true     # avoid re-downloading on repeat

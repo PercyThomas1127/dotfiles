@@ -13,3 +13,10 @@ rice-backup-*/
 # caches / state that should never be committed
 *.log
 .cache/
+
+# Spotify Web API client ID. Not a secret -- client IDs are public in the PKCE
+# flow -- but this repo IS public, and a client ID committed here would be
+# reused by strangers and put us straight back on a shared, exhausted quota,
+# which is the whole problem it was set up to escape. app.toml reads it via
+# client_id_command instead.
+.local/share/spotify-player/client_id
