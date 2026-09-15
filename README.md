@@ -279,17 +279,51 @@ root-owned `0644`. No udev rule is needed; don't add one.
   `album-accent`), pushed to the private repo
   `PercyThomas1127/hyprwave-album-accent` — deliberately NOT named
   `hyprwave`, so it cannot be mistaken for upstream. `origin` is that repo,
-  `upstream` is `shantanubaddar/hyprwave`. Not the upstream build. Two commits on top of upstream: the
-  visualizer bars take their hue from the current album cover, and the SIGUSR1
-  handler no longer calls GTK from a signal handler (that was the crash that
-  killed the bar on 2026-09-13). The original upstream binary and data tree are
-  backed up under `~/.local/share/hyprwave-backup-*/`, with a restore recipe in
-  that directory.
+  `upstream` is `shantanubaddar/hyprwave`. Not the upstream build. Three commits
+  on top of upstream: the visualizer bars take their hue from the current album
+  cover; GTK is no longer called from signal context (that was the crash that
+  killed the bar on 2026-09-13); and all five signals now arrive through a
+  self-pipe, with two new ones added. The original upstream binary and data
+  tree are backed up under `~/.local/share/hyprwave-backup-*/`, with a restore
+  recipe in that directory.
+  - **Signals are a self-pipe, and show/hide is idempotent.** Two things were
+    wrong with upstream's signal handling, and `hyprwave-autohide` depends on
+    both fixes:
+    - `g_unix_signal_add` does **not wake an idle GLib main loop**. MEASURED: a
+      SIGUSR1 sat undispatched for **6.759s**, with the process at 0% CPU in
+      `poll()`, until some unrelated Wayland or D-Bus event woke the loop; with
+      any periodic source attached the same signal dispatched in **0.002s**.
+      That is why the autohide script looked like it did nothing. It also made
+      the hide look separately broken — `reveal_child` FALSE with
+      `child_revealed` still TRUE 30s later reads like a stalled animation,
+      when in fact the handler had not run yet.
+    - SIGUSR1 is a **blind toggle**, which cannot be reconciled against. A
+      supervisor must then infer the current state, and its only readable proxy
+      is the layer surface, which lags the ~300ms reveal animation. Pausing
+      emits several MPRIS events in a row, so the supervisor re-entered
+      mid-animation, read the stale surface and toggled twice — leaving the bar
+      **inverted**, with play hiding it and pause showing it.
+
+    So: `SIGRTMIN+3` = show, `SIGRTMIN+4` = hide, both idempotent, and the
+    script asserts the state it wants without reading anything back.
+    `SIGUSR1` still toggles, for `hyprwave-toggle`. The other four handlers
+    were also still calling GTK (`handle_sigusr2`) or `g_idle_add` (the
+    `SIGRTMIN` trio) from signal context — the same unsafety as the original
+    crash — and all of them now go through the pipe.
   - **Never run `make install` for it.** It overwrites `style.css`,
     `style-layout.css`, all 12 icons, all 14 themes, the font (and runs
     `fc-cache`) and `hyprwave-toggle` — not just the binary. Install by hand:
     `install -Dm755 hyprwave ~/.local/bin/hyprwave`. None of the data files
     need to change.
+
+    This rule got broken on 2026-09-15 (twice), so for the record: it did no
+    damage, and the reason is worth knowing. All 28 overwritten files came back
+    **byte-identical** to `hyprwave-backup-20260913-222137`, because the fork
+    has never modified a data file — only `main.c`. The real risk is therefore
+    losing local edits to those files, which do not currently exist; if you ever
+    do customise `style.css` or a theme, the rule becomes load-bearing rather
+    than precautionary. Verify with
+    `diff -rq ~/.local/share/hyprwave-backup-*/share-hyprwave ~/.local/share/hyprwave`.
   - **The visualizer colour is NOT in the stylesheet.** `.visualizer-bar` there
     is only the *template*: the accent is applied at runtime by a second
     `GtkCssProvider` at `PRIORITY_USER + 1`, because `load_css()` installs the
@@ -301,6 +335,29 @@ root-owned `0644`. No udev rule is needed; don't add one.
     handler builds *another* bar. You get a duplicate pill stacked on the
     working one. Kill the old instance first. This is upstream behaviour, not
     something the fork introduced.
+
+- **`spotify_player` is a local patched build, and the patch is NOT backed up
+  anywhere.** `~/.local/bin/spotify_player` is built from `~/Developer/spotify-player`,
+  whose `origin` is **upstream** `aome510/spotify-player` — there is no fork of
+  our own. The patch is one local commit, so a reclone, a hard reset or a
+  `git pull --rebase` gone wrong loses it silently and the only symptom is that
+  the media key feels sluggish again. If that matters, push it to a fork.
+  - Built with `--no-default-features --features pulseaudio-backend,media-control`
+    and installed stripped. Plain `cargo install` would pull the default
+    features and a different backend.
+  - **What the patch does:** transport commands go straight to the local
+    librespot `spirc` when playback is on this machine's own device, instead of
+    out to the Web API. Every pause used to be a round trip to Spotify and
+    back — MEASURED at **1507ms** and **1770ms** for one `Player(ResumePause)` —
+    which is what made the media key feel like it had not registered.
+  - It is **conditional on the active device id being ours**, and falls back to
+    the Web API otherwise. That is not defensive padding: when playback is on a
+    phone, a speaker or the web player, the Web API is the only way to reach it,
+    and pausing our own idle device instead would silently do nothing.
+  - Separately, `client_id_command` in `.config/spotify-player/app.toml` is what
+    stopped the `429`s; see the comments in that file. Both problems produced
+    the same complaint ("it lags"), but they are unrelated — one was a shared
+    API quota, the other a round trip.
 
 - **Do NOT "fix" the `!important` in hyprwave's stylesheet.**
   `~/.local/share/hyprwave/style.css` contains, in its `.no-transition` rule:
