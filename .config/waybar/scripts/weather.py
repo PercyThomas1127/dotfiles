@@ -88,8 +88,12 @@ def format_chances(hour):
     return ", ".join(conditions)
 
 
+# The pill shows the ACTUAL temperature, not FeelsLikeC. Those differ by
+# several degrees often enough that the bar read colder than every other
+# thermometer -- 18 against a real 22 on the day this was changed. Feels-like
+# is still in the tooltip, on the line below the header.
 data['text'] = WEATHER_CODES[weather['current_condition'][0]['weatherCode']] + \
-    " "+weather['current_condition'][0]['FeelsLikeC']+"°"
+    " "+weather['current_condition'][0]['temp_C']+"°"
 
 data['tooltip'] = f"<b>{weather['current_condition'][0]['weatherDesc'][0]['value']} {weather['current_condition'][0]['temp_C']}°C</b>\n"
 data['tooltip'] += f"Feels like: {weather['current_condition'][0]['FeelsLikeC']}°C\n"
