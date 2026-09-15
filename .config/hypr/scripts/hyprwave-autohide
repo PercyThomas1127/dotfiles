@@ -3,26 +3,23 @@
 #
 # hyprwave has no auto-hide option (its whole config schema is edge, margin,
 # layer, exclusive_zone, enabled, now_playing, idle_timeout, preference) and
-# with no player it deliberately stays up showing "No Player". Its only
-# control is a BLIND SIGUSR1 toggle -- hyprwave-toggle's `visibility` action
-# reads its argument and ignores it -- and there is no socket or D-Bus action
-# to query state with.
+# with no player it deliberately stays up showing "No Player".
 #
-# Rather than track state in a file (which desyncs), read the truth from the
-# compositor: hiding destroys hyprwave's layer-shell surface, so the
-# surface's presence IS the state. Verified 1 -> 0 -> 1 by signal.
+# This script is therefore just: watch MPRIS, and assert the visibility that
+# playback state implies. It is stateless -- it stores nothing and reads
+# nothing back -- which is only possible because our hyprwave fork accepts an
+# idempotent show/hide rather than only a blind toggle. See reconcile().
 #
-# NOTE the exact match on "hyprwave" below. A substring match would also
-# catch the separate "hyprwave-notification" surface and read as shown
-# forever.
+# An earlier version inferred hyprwave's current state from the compositor's
+# layer tree (hiding destroys the layer-shell surface, so its presence was the
+# state) and toggled on mismatch. That read is correct but it LAGS the ~300ms
+# reveal animation, and pausing emits several MPRIS events in a row, so
+# reconcile re-entered mid-animation, saw the stale surface and toggled twice.
+# The bar then sat inverted: play hid it, pause showed it. Asserting the wanted
+# state instead removes the read, the race and the parity together, and drops
+# the hyprctl + jq dependency with them.
 
 HEARTBEAT=10   # seconds; see the loop at the bottom for why this is needed
-
-bar_shown() {
-    hyprctl layers -j 2>/dev/null | jq -e '
-        [ .[].levels[][] | select(.namespace == "hyprwave") ] | length > 0
-    ' >/dev/null 2>&1
-}
 
 # Strict: only while actually Playing, so pausing hides the bar. That is fine
 # here because pausing is done with the keyboard media key, not from the bar.
@@ -32,18 +29,37 @@ want_shown() { [ "$(playerctl status 2>/dev/null)" = "Playing" ]; }
 # extension; under POSIX sh it fails with "invalid signal specification" and
 # this script then silently does nothing at all. hyprwave-toggle gets away
 # with the SIG- form only because it is #!/bin/bash.
+#
+# REQUIRES the patched hyprwave, for two fixes:
+#
+#  1. SIGRTMIN+3 = show, SIGRTMIN+4 = hide. Upstream offers only a BLIND
+#     TOGGLE (SIGUSR1), which cannot be reconciled against: this script has to
+#     infer the current state, and its only readable proxy was the layer
+#     surface, which lags hyprwave's ~300ms reveal animation. One disagreement
+#     flipped the bar the wrong way and it stayed inverted -- measured play
+#     hiding the bar and pause showing it. These two signals are an idempotent
+#     SET, so we simply assert the state we want and never read anything back.
+#     No surface polling, no settle delay, no parity to lose.
+#
+#  2. Signal delivery. Upstream used g_unix_signal_add, which does not wake a
+#     main loop that has nothing else to do: a signal sat undispatched for a
+#     MEASURED 6.759s until some unrelated Wayland or D-Bus event woke the
+#     loop, which is why this script used to look like it did nothing.
+#     hyprwave now routes signals through a self-pipe sitting in the loop's
+#     poll set, dispatching in ~2ms.
 reconcile() {
     pid=$(pgrep -x hyprwave) || return 0
-    [ -n "$pid" ] || return 0
+    # pgrep can return SEVERAL pids, and that string would make `kill` fail
+    # outright. Anything not a single number means the state is ambiguous, so
+    # do nothing rather than signal the wrong process -- the same multi-pid
+    # trap that once started a second waybar.
+    case "$pid" in ''|*[!0-9]*) return 0 ;; esac
+
     if want_shown; then
-        bar_shown && return 0            # already correct, nothing to do
+        kill -s RTMIN+3 "$pid" 2>/dev/null
     else
-        bar_shown || return 0            # already correct, nothing to do
+        kill -s RTMIN+4 "$pid" 2>/dev/null
     fi
-    kill -s USR1 "$pid"
-    # show/hide is an animated revealer (~400ms). Settle before the next read
-    # or a burst of status events double-toggles. Only needed after a toggle.
-    sleep 0.5
 }
 
 cleanup() {
@@ -58,8 +74,9 @@ reconcile                                # initial state
 # can desync without one: hyprwave resets itself to visible whenever it
 # restarts, and `hyprwave-toggle set-theme` / `set-position` restart it
 # internally. Without this the bar stays wrongly visible until the next
-# play/pause. reconcile() returns immediately when state already matches, so
-# this costs one hyprctl plus one playerctl call every HEARTBEAT seconds.
+# play/pause. This costs one pgrep plus one playerctl call every HEARTBEAT
+# seconds; the signal itself is a no-op inside hyprwave when the state already
+# matches.
 ( while :; do sleep "$HEARTBEAT"; reconcile; done ) &
 HB=$!
 
