@@ -57,9 +57,17 @@ if [ ! -f "$out" ]; then
     # Centre-crop to a square, then pad the LEFT with transparency to form
     # the inset. -gravity east anchors the art to the right of the wider
     # canvas, so the padding lands on the left.
+    #
+    # PNG32: is load-bearing. ImageMagick picks the output format from the
+    # file EXTENSION, and this writes to a ".tmp" name it cannot interpret, so
+    # it silently falls back to the INPUT format. Firefox serves PNG, so the
+    # alpha survived and this looked fine; Spotify's CDN serves JPEG, which
+    # has no alpha channel, so the transparent inset was flattened to BLACK
+    # and showed as a black bar beside the cover. PNG32 forces RGBA out
+    # regardless of what came in.
     magick "$src" -resize "${ART}x${ART}^" -gravity center -extent "${ART}x${ART}" \
            -background none -gravity east -extent "$((ART + INSET))x${ART}" \
-           "$out.tmp" 2>/dev/null || exit 0
+           "PNG32:$out.tmp" 2>/dev/null || exit 0
     mv -f "$out.tmp" "$out" || exit 0
     # Firefox writes a fresh file per track, so this would grow without bound.
     ls -1t "$CACHE"/*.png 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
