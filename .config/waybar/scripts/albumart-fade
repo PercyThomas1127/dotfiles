@@ -1,0 +1,181 @@
+#!/bin/sh
+# Fade the waybar album cover in or out, and build the frames it fades through.
+#
+# WHY THIS EXISTS
+# The cover used to be cleared by reloading waybar (SIGUSR2), because the image
+# module never releases its pixbuf and #media painted a pill background, so an
+# empty image still drew a pill and only destroying the module cleared it.
+# waybar forks on reload and never reaps the child: 15 `waybar <defunct>`
+# zombies accumulated in a single session, and the reload re-ran every module
+# script, weather included.
+#
+# Now the PNG paints its own end of the pill (colour, rounded left corner,
+# inset), #media has no background, and a fully transparent frame is genuinely
+# invisible. No reload, and alpha in the frames is the fade.
+# Two directories, deliberately split by LIFETIME.
+#
+# The composed pill+cover is expensive -- it costs a CDN fetch -- so it is
+# cached under ~/.cache and kept across sessions.
+#
+# Everything describing what is on screen RIGHT NOW lives in the runtime dir
+# instead, which is per-boot. Persisting it was a live bug: log out while a
+# cover is showing and the state file still names a valid frame, so the next
+# login painted a stale cover with no pill and no title behind it -- the same
+# class of bug as the stale art that shipped once before. mediaplayer.py also
+# clears it at startup, which covers logging out and back in without a reboot.
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/waybar-albumart"
+BASES="$CACHE/base"          # composed pill+cover per art URL, opaque
+RUN="${XDG_RUNTIME_DIR:-/tmp}/waybar-albumart"
+STATE="$RUN/frame"           # RUN-relative path of the frame to display
+PIDF="$RUN/anim.pid"
+CSS="$HOME/.config/waybar/style.css"
+
+STEPS=8          # frames per fade
+DELAY=0.028      # + ~2ms exec = ~30ms/frame -> ~240ms, close to the 260ms
+                 # opacity transition on #custom-spotify in style.css
+SIGNO=5          # must equal "signal" in the image module's config
+KEEP=40          # cached base images to retain
+
+# Geometry. ART/INSET/W are in logical px * SCALE; H is too, but is NOT
+# derived from ART, because the cover is not as tall as the pill.
+ART_L=38; INSET_L=10; SCALE=4
+ART=$((ART_L * SCALE)); INSET=$((INSET_L * SCALE))
+W=$((ART + INSET))
+
+# 175/4 = 43.75 logical px. That is the MEASURED height of every pill in this
+# bar -- weather, clock and the title half all render y 13..82 in a 96px-tall
+# bar, i.e. 70 physical / 1.6 monitor scale. It is not a round number and it is
+# not min-height: the pills fill the height the group grants them, which is the
+# bar less #media's 8.5px margins, so no padding tweak can change it. An
+# earlier attempt shrank the TITLE half to match the image instead and that was
+# backwards: it would have left the media pill shorter than every other pill.
+#
+# Because "size" fits the image into a SQUARE box preserving aspect, the
+# rendered height is size * H/W = 48 * 175/192 = 43.75 logical, exactly the
+# measured pill height. The canvas ratio carries the target
+# height and "size" stays 48 -- the config needs no change, and the image
+# cannot ask for more height than the group has, which is what would make GTK
+# scale the whole pixbuf down.
+#
+# The cover stays 38 logical and is centred in the taller canvas, so ~2.9px of
+# pill colour bands it top and bottom. That deliberately mirrors the 2px
+# vertical padding the other pills give their text.
+H=175
+
+# Pill colour and radius come from the stylesheet, so the PNG cannot drift
+# from the CSS and leave a visible seam at the join.
+PILL=$(sed -n 's/.*--pill-color: *\(#[0-9a-fA-F]\{6\}\).*/\1/p' "$CSS" 2>/dev/null | head -1)
+[ -n "$PILL" ] || PILL='#252733'
+RAD_L=$(sed -n 's/.*--pill-radius: *\([0-9]\{1,\}\).*/\1/p' "$CSS" 2>/dev/null | head -1)
+[ -n "$RAD_L" ] || RAD_L=8
+RAD=$((RAD_L * SCALE))
+
+# Cancel any fade already in flight, by EXPLICIT pid. Never a pkill pattern --
+# a pattern match has killed this session's own shell twice.
+if [ -f "$PIDF" ]; then
+    old=$(cat "$PIDF" 2>/dev/null)
+    case "$old" in
+        ''|*[!0-9]*|"$$") : ;;
+        *) kill "$old" 2>/dev/null ;;
+    esac
+fi
+mkdir -p "$BASES" "$RUN" || exit 0
+printf '%s' "$$" > "$PIDF"
+trap 'rm -f "$PIDF"' EXIT INT TERM
+
+sig()  { pkill -RTMIN+$SIGNO -x waybar 2>/dev/null || true; }
+show() { printf '%s' "$1" > "$STATE"; sig; }
+
+# Compose the pill end + cover for the current track, then render the alpha
+# ramp into $1. Leaves the displayed frame untouched, so this can run while
+# the outgoing cover is still on screen -- which matters because a slow art
+# download would otherwise show as a gap.
+build() {
+    set="$1"
+    url=$(playerctl metadata mpris:artUrl 2>/dev/null) || return 1
+    [ -n "$url" ] || return 1
+    key=$(printf '%s' "$url" | sha1sum | cut -c1-16)
+    base="$BASES/$key.png"
+
+    if [ ! -f "$base" ]; then
+        case "$url" in
+            # Firefox writes MPRIS art to a local file: no network needed.
+            file://*)  src=$(printf '%s' "$url" | sed 's|^file://||') ;;
+            # Spotify's CDN serves remote JPEGs instead. This fetch dominates
+            # build time, hence caching the composed result per URL.
+            http*://*) src="$CACHE/.dl"
+                       curl -sfL --max-time 5 -o "$src" "$url" || return 1 ;;
+            *)         return 1 ;;
+        esac
+        [ -f "$src" ] || return 1
+
+        # Mask with only the LEFT corners rounded: round all four, then paint
+        # the right-hand side back square.
+        magick -size ${W}x${H} xc:none -fill white \
+            -draw "roundrectangle 0,0 $((W - 1)),$((H - 1)) $RAD,$RAD" \
+            -draw "rectangle $RAD,0 $((W - 1)),$((H - 1))" \
+            "PNG32:$CACHE/.mask" 2>/dev/null || return 1
+
+        # Opaque pill-coloured inset left, square cover right, clipped to the
+        # pill shape. -gravity east anchors the cover so padding lands left.
+        magick "$src" -resize "${ART}x${ART}^" -gravity center -extent "${ART}x${ART}" \
+            -background "$PILL" -gravity east -extent "${W}x${H}" \
+            "$CACHE/.mask" -alpha off -compose CopyOpacity -composite \
+            "PNG32:$base" 2>/dev/null || { rm -f "$base"; return 1; }
+
+        ls -1t "$BASES"/*.png 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
+    fi
+
+    # One invocation for all frames: measured 55ms against 125ms for eight
+    # separate calls, and bit-identical output.
+    #
+    # PNG32 is load-bearing. ImageMagick picks its format from the file
+    # extension, so a JPEG source previously yielded a JPEG with no alpha and
+    # the transparency was flattened to black beside the cover.
+    rm -rf "$RUN/$set"; mkdir -p "$RUN/$set" || return 1
+    cmd="magick $base"
+    i=0
+    while [ "$i" -lt "$STEPS" ]; do
+        a=$(awk "BEGIN{printf \"%.4f\", $i/($STEPS-1)}")
+        cmd="$cmd ( +clone -channel A -evaluate multiply $a +channel -write PNG32:$RUN/$set/0$i.png +delete )"
+        i=$((i + 1))
+    done
+    $cmd null: 2>/dev/null || return 1
+}
+
+# $1 = in|out, $2 = frame set directory name
+play() {
+    i=0
+    while [ "$i" -lt "$STEPS" ]; do
+        if [ "$1" = in ]; then n=$i; else n=$((STEPS - 1 - i)); fi
+        show "$2/0$n.png"
+        sleep "$DELAY"
+        i=$((i + 1))
+    done
+}
+
+active()   { cat "$RUN/active" 2>/dev/null || echo fa; }
+inactive() { [ "$(active)" = fa ] && echo fb || echo fa; }
+blank()    { : > "$STATE"; sig; }
+
+case "$1" in
+    in)
+        new=$(inactive)
+        if build "$new"; then printf '%s' "$new" > "$RUN/active"; play in "$new"
+        else blank; fi ;;
+    out)
+        play out "$(active)"; blank ;;
+    # Track change. Build the incoming cover FIRST, while the outgoing one is
+    # still displayed, so a slow download cannot leave the pill empty; only
+    # then dip out and back in.
+    change)
+        new=$(inactive)
+        if build "$new"; then
+            play out "$(active)"
+            printf '%s' "$new" > "$RUN/active"
+            play in "$new"
+        else
+            play out "$(active)"; blank
+        fi ;;
+    *)  echo "usage: $0 {in|out|change}" >&2; exit 2 ;;
+esac

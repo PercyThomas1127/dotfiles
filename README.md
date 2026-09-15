@@ -199,25 +199,77 @@ root-owned `0644`. No udev rule is needed; don't add one.
     would be when a player exposes no artwork; padding on the group leaves a
     bare pill floating at bar centre when nothing is playing at all.
   - **The `image` module never hides.** An empty one still paints any box CSS
-    gives it, so it gets zero padding and zero margin, and the art's left inset
-    is baked into the PNG as transparent pixels instead. The canvas is
-    `(art + inset) x art`, so `size` must equal art + inset — currently
-    `38 + 10 = 48`.
+    gives it, so it gets zero padding and zero margin, and the whole left end
+    of the pill — colour, rounded corner, inset — is baked into the PNG.
+  - **The image module's height cannot be set; it is derived.** `size` fits the
+    image into a `size x size` box preserving aspect, so the rendered height is
+    `size * H/W` of the canvas. The canvas is therefore `192x175`, not
+    `192x152`: at `size: 48` that lands on **43.75 logical px**, which is what
+    every pill in this bar actually measures. The cover itself stays 38 and is
+    centred, so ~2.9px of pill colour bands it top and bottom.
+
+    That 43.75 is worth spelling out, because guessing at it cost a lot of
+    time. The title half does not *choose* its height — it fills what the group
+    grants it, which is the bar (96 physical px) less `#media`'s 8.5px margins.
+    Neither `min-height` nor padding changes it. An earlier attempt shrank the
+    title half to 38 to match the image; that was backwards and would have left
+    the media pill shorter than the weather and clock pills.
+
+    Measure this with a **colour sentinel** rather than by inference: point the
+    frame state at a solid `#FF00FF` canvas, give the pill rules throwaway
+    colours, `grim` the screen and take bounding boxes. Reading the rendered
+    file, or sweeping `size` and eyeballing, both produced nonsense. The
+    sentinel gives image, title and weather all at `y 13..82` = 70 physical.
 
   **waybar's `image` module never releases its pixbuf.** Handed no path it
-  keeps drawing the last cover it loaded, so closing a player left the
-  previous album sitting in the bar next to a collapsed pill. Nothing the
-  script can emit fixes it: a transparent placeholder still occupies a sliver
-  of pill, and the image overflows its own container once the text half hides.
-  Only destroying and recreating the module clears it, so `mediaplayer.py`
-  sends waybar **SIGUSR2** (reload) on the art-to-no-art transition only --
-  never on ordinary track changes, which use the cheap signal.
-  Two consequences of that reload, both accepted deliberately:
-  - waybar forks on SIGUSR2 and never reaps the child, so each one leaves a
-    `waybar <defunct>` zombie. Harmless (one PID-table entry, `pid_max` is
-    4194304) and cleared at logout, but that is why `ps` shows them.
-  - it re-runs every module script, which is why `weather.py` had to be made
-    resilient — see below.
+  keeps drawing the last cover it loaded. That used to be cleared by reloading
+  waybar (`SIGUSR2`), because `#media` painted the pill background so an empty
+  image still drew one — and that reload leaked a `waybar <defunct>` zombie
+  every time (**15 accumulated in a single session**) and re-ran every module
+  script, which is why `weather.py` had to be made resilient.
+
+  **There is no reload any more.** The PNG paints its own end of the pill, so
+  `#media` has no background and a fully transparent frame is genuinely
+  invisible — retaining that frame *is* the cleared state. The image still
+  occupies 48px when invisible, which is harmless only because `group/media`
+  is alone in `modules-center`; adding another centre module would sit
+  off-centre. Its width cannot be animated away: with `size: 48` waybar fits
+  the image into a 48x48 box, so a landscape canvas always renders 48 wide.
+
+  Fades come from two different mechanisms, deliberately:
+  - **The cover** fades through eight pre-rendered alpha frames written by
+    `scripts/albumart-fade`, which signals waybar per frame ~30ms apart.
+    Verified that waybar does **not** coalesce signals at that spacing — 8 of 8
+    produced an invocation. `scripts/albumart` is therefore only a state
+    reader, ~2ms, because it runs once per frame; all the ImageMagick work is
+    in the animator. Frames are built in ONE `magick` invocation (55ms against
+    125ms for eight separate calls, bit-identical output).
+  - **The title half** fades via CSS, because a class change *is* a valid GTK
+    transition trigger: `mediaplayer.py` re-emits the text with a `fading`
+    class and only blanks it after the transition, since hiding a module is
+    not transitionable. `has-art` must be kept on that emit — the pill
+    background hangs off it. This needs no Pango markup, so `escape: true` and
+    the marquee's slice-then-escape ordering are untouched.
+
+  On a track change the incoming cover is built **before** the dip, while the
+  outgoing one is still displayed, so a slow art download cannot leave the pill
+  empty. Two frame sets (`fa`/`fb`) alternate so both covers exist at once.
+
+  The pill colour and radius are read from the `--pill-color` / `--pill-radius`
+  marker comments in `style.css`, so the PNG cannot drift from the stylesheet
+  and leave a seam at the join. One 1px seam remains at the join by
+  construction — 48 logical px is 76.8 physical at this monitor's 1.6 scale, so
+  it lands mid-pixel — but with both sides the same colour it blends between
+  them and is invisible. A negative margin was tried and measured to have no
+  effect: the gap is inside the image widget's own allocation.
+
+  The frame state and the rendered frames live in **`$XDG_RUNTIME_DIR`**, not
+  `~/.cache`, and only the composed-and-downloaded covers are cached. This is
+  not tidiness: persisting "what is on screen now" meant logging out while a
+  cover showed left a state file naming a valid frame, so the next login
+  painted a stale cover with no pill and no title behind it.
+  `mediaplayer.py` also clears the state at startup, which covers logging out
+  and back in without a reboot.
 
   Track changes are pushed, not polled: `mediaplayer.py` sends `SIGRTMIN+5` to
   waybar when the art URL changes, and deliberately not from `write_output`,

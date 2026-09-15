@@ -6,7 +6,9 @@ import signal
 import subprocess
 import gi
 import json
+import os
 import unicodedata
+from pathlib import Path
 gi.require_version('Playerctl', '2.0')
 from gi.repository import Playerctl, GLib
 
@@ -116,7 +118,34 @@ def _set_marquee(body, prefix, player):
 # sitting on the MPRIS signals and waybar would otherwise have to poll.
 ART_SIGNAL = 5      # MUST match "signal" in the image module's config
 
+# The animator. It walks a pre-rendered alpha ramp, writing the current frame
+# to a state file and signalling waybar once per frame, so the cover fades
+# rather than cutting. Run detached: it sleeps for the length of the fade and
+# must not block the MPRIS main loop, and it must outlive this call.
+FADE = str(Path(__file__).with_name('albumart-fade'))
+
+# Length of the cover fade. Keep in step with STEPS * DELAY in albumart-fade
+# and with the opacity transition on #media #custom-spotify in style.css, so
+# the two halves of the pill land together.
+FADE_MS = 260
+
+# Frame state lives in the runtime dir so it cannot outlive the boot; see the
+# comment in albumart-fade. Clearing it here as well covers logging out and
+# back in without rebooting, where the runtime dir can survive. Without it the
+# image module's first exec of the new session would resolve a frame left over
+# from the old one and paint a cover with no pill and no title behind it.
+_RUN = Path(os.environ.get('XDG_RUNTIME_DIR', '/tmp')) / 'waybar-albumart'
+
+
+def _clear_frame_state():
+    try:
+        (_RUN / 'frame').write_text('')
+    except OSError:
+        pass
+
 _last_art = None
+_last_text = ''
+_blank_id = None
 
 
 def _art_url(player):
@@ -127,12 +156,27 @@ def _art_url(player):
         return None
 
 
+def _fade(mode):
+    """Kick off albumart-fade in its own session.
+
+    start_new_session detaches it from this process group, so it survives
+    being called back-to-back and is only ever cancelled by the next
+    invocation -- which does it by explicit pid, never a pkill pattern.
+    """
+    try:
+        subprocess.Popen([FADE, mode],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True)
+    except OSError:
+        logger.exception('could not start %s %s', FADE, mode)
+
+
 def _refresh_art(player):
-    """Tell waybar to re-read the artwork, but only when it actually changed.
+    """Drive the cover transition, but only when the art actually changed.
 
     Deliberately NOT called from write_output: that runs on every marquee
-    tick, several times a second, and firing pkill at that rate would cost
-    far more than the polling this replaces.
+    tick, several times a second, and restarting the animator at that rate
+    would cost far more than the polling this replaces.
     """
     global _last_art
     art = _art_url(player) if player is not None else None
@@ -141,26 +185,60 @@ def _refresh_art(player):
     had_art = _last_art is not None
     _last_art = art
 
-    # -x matches the process name exactly throughout here. A bare pattern
-    # would also match this script's own command line.
-    if art is None and had_art:
-        # Losing the artwork needs a RELOAD, not a refresh. waybar's image
-        # module never clears: handed no path it just keeps drawing the last
-        # cover it loaded, so closing a tab left the previous album sitting
-        # there next to a collapsed pill. Nothing the script can emit fixes
-        # it -- a transparent placeholder still occupies a sliver of pill.
-        # Only destroying and recreating the module releases the pixbuf.
+    if art is None:
+        # Losing the cover used to need a full waybar RELOAD: the image module
+        # never clears, so handed no path it kept drawing the last cover, and
+        # only destroying the module released the pixbuf. The reload forked a
+        # child waybar never reaped, so every closed tab leaked a zombie.
         #
-        # Deliberately scoped to this one transition. It reloads the whole
-        # bar, so it must not fire on ordinary track changes.
-        subprocess.run(['pkill', '-SIGUSR2', '-x', 'waybar'], check=False)
+        # It is unnecessary now. The pill's left end lives inside the PNG
+        # rather than in #media's background, so a fully transparent frame is
+        # genuinely invisible and fading to it is enough.
+        if had_art:
+            _fade('out')
+    elif had_art:
+        _fade('change')   # dip through transparent, so covers never crossfade
     else:
-        subprocess.run(['pkill', '-RTMIN+%d' % ART_SIGNAL, '-x', 'waybar'],
-                       check=False)
+        _fade('in')
 
 
-def write_output(text, player, tooltip=''):
+def _emit_fading(player_name, text):
+    """Re-emit the current title with the `fading` class, keeping has-art.
+
+    Cannot go through write_output: that re-derives has-art from the player,
+    and the player is already gone by the time this runs, so it would report
+    no-art and drop the pill background instantly -- the very cut the fade
+    exists to avoid.
+    """
+    sys.stdout.write(json.dumps({
+        'text': text,
+        'tooltip': text,
+        'class': ['custom-' + player_name, 'has-art', 'fading'],
+        'alt': player_name,
+    }) + '\n')
+    sys.stdout.flush()
+
+
+def _blank_output():
+    """Emit empty text, ending the module, AFTER the fade has run."""
+    global _blank_id
+    _blank_id = None
+    sys.stdout.write('\n')
+    sys.stdout.flush()
+    return False
+
+
+def write_output(text, player, tooltip='', extra_classes=()):
+    global _last_text, _blank_id
     logger.info('Writing output')
+    _last_text = text
+
+    # A fade-out may still be pending from a player that vanished moments ago.
+    # Its timeout would blank whatever this call is about to emit, so a new
+    # player appearing mid-fade cancels it.
+    if _blank_id is not None:
+        GLib.source_remove(_blank_id)
+        _blank_id = None
 
     output = {'text': text,
               'tooltip': tooltip or text,
@@ -168,7 +246,8 @@ def write_output(text, player, tooltip=''):
               # title squares off its left edge to butt against the image,
               # without it the title must stay a normal rounded pill.
               'class': ['custom-' + player.props.player_name,
-                        'has-art' if _art_url(player) else 'no-art'],
+                        'has-art' if _art_url(player) else 'no-art',
+                        *extra_classes],
               'alt': player.props.player_name}
 
     sys.stdout.write(json.dumps(output) + '\n')
@@ -214,11 +293,30 @@ def on_player_vanished(manager, player):
     # Critical: without this the timer keeps firing against a dead player and
     # the module resurrects itself seconds after the player closed.
     _stop_marquee()
+    # Read the name BEFORE _refresh_art: it is the last moment the vanished
+    # player's properties are still readable.
+    try:
+        name = player.props.player_name
+    except Exception:
+        name = None
     # Clear the artwork too, or the last cover outlives the player.
+    had_art = _last_art is not None
     _refresh_art(None)
+
+    # Hiding is not transitionable: emit empty text now and the title half
+    # vanishes instantly while the cover is still fading, so the two halves
+    # come apart. Re-emit the SAME text with a `fading` class instead -- a
+    # class change is a valid GTK transition trigger -- and only end the
+    # module once the fade has finished.
+    global _blank_id
+    if had_art and _last_text and name:
+        _emit_fading(name, _last_text)
+        if _blank_id is not None:
+            GLib.source_remove(_blank_id)
+        _blank_id = GLib.timeout_add(FADE_MS + 60, _blank_output)
+    else:
+        _blank_output()
     _mq.update(body='', prefix='', player=None, offset=0, last=None)
-    sys.stdout.write('\n')
-    sys.stdout.flush()
 
 
 def init_player(manager, name):
@@ -270,6 +368,8 @@ def main():
 
     manager.connect('name-appeared', lambda *args: on_player_appeared(*args, arguments.player))
     manager.connect('player-vanished', on_player_vanished)
+
+    _clear_frame_state()
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)

@@ -116,11 +116,14 @@
         // (measured -- a 36px and a 64px source both rendered identically).
         // It fits the image into a size x size box preserving aspect, which
         // is why scripts/albumart centre-crops to a square; see its header.
-        // Keep in step with min-height on #custom-spotify.has-art in
-        // style.css, or the two halves of the pill stop matching.
-        // 48 = 38px of art + the 10px left inset the PNG carries as transparent
-        // pixels (see scripts/albumart). The art itself is the 18.5px label
-        // plus ~20, and the largest that still fits: 38 + 4 + 17 = 59 of 60.
+        // 48 = 38px of art + the 10px left inset, which the PNG paints in the
+        // pill colour so that the image half carries its own rounded end.
+        // The HEIGHT is not set here and must not be: it comes out as
+        // size * H/W of the canvas, so scripts/albumart-fade picks the canvas
+        // ratio (192x175) to land on 43.75 logical px -- the measured height of
+        // every other pill in the bar. Raising "size" to grow the image instead
+        // would ask for more height than the group has and GTK would scale the
+        // whole pixbuf down.
         "size": 48,
         "signal": 5,
         // Would otherwise show the cache file path on hover.

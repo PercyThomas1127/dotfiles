@@ -1,76 +1,19 @@
 #!/bin/sh
-# Resolve the playing track's artwork to a small cached PNG for waybar's image
-# module, and print its path. No output = no art = the module hides.
+# waybar image-module exec. Prints whichever fade frame the animator selected.
 #
-# WHY THE OUTPUT IS ALWAYS SQUARE
-# waybar's image module scales with its "size" option, which is a single
-# number used for BOTH axes with the aspect ratio preserved -- so it fits the
-# image inside a size x size box. A 16:9 thumbnail fitted into 38x38 renders
-# 38x21, i.e. shorter than a square cover, which makes the art height jump
-# around between tracks. Centre-cropping to a square here is what keeps every
-# cover exactly the same size in the bar.
+# Deliberately trivial: invoked once per animation frame, ~30 times a second
+# during a transition, so it must never touch ImageMagick, curl or playerctl.
+# All of that is in albumart-fade, off the animation path. Measured ~2ms.
 #
-# Leaving "size" unset is NOT an alternative: measured, waybar then clamps to
-# roughly 16px regardless of the file (a 36px and a 64px source both rendered
-# at an identical 26 device px), which is far too small.
+# The state file holds a path rather than an index, so the animator can keep
+# two frame sets on disk and dip from the outgoing cover to the incoming one.
+# It lives in the runtime dir because it describes the CURRENT session only --
+# see the comment in albumart-fade.
 #
-# WHY THE FILE CARRIES ITS OWN LEFT INSET
-# waybar's image module never hides. An empty one still paints whatever box
-# CSS gives it, so any padding or margin used to inset the art from the pill's
-# left edge shows up as a stray sliver at bar centre whenever nothing is
-# playing. The module therefore gets zero padding and zero margin, and the
-# inset is baked in as transparent pixels on the left of the PNG instead --
-# which costs nothing and disappears with the image.
-#
-# Geometry: the canvas is (ART + INSET) wide by ART tall, so waybar fitting it
-# into a size x size box lands it at exactly (ART + INSET) x ART logical px.
-# That is why "size" in the config must equal ART_L + INSET_L below.
-CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/waybar-albumart"
-ART_L=38         # on-screen art height, logical px. Keep = min-height on
-                 # #media #custom-spotify.has-art in style.css.
-INSET_L=10       # gap between the pill's left edge and the art
-SCALE=4          # source oversample, so the downscale stays crisp
-ART=$((ART_L * SCALE))
-INSET=$((INSET_L * SCALE))
-KEEP=50          # cached covers to retain
-
-url=$(playerctl metadata mpris:artUrl 2>/dev/null) || exit 0
-[ -n "$url" ] || exit 0
-
-# Key the cache on the URL, so an unchanged track costs one stat rather than a
-# decode-and-rescale on every update.
-key=$(printf '%s' "$url" | sha1sum | cut -c1-16)
-out="$CACHE/$key.png"
-mkdir -p "$CACHE" || exit 0
-
-if [ ! -f "$out" ]; then
-    case "$url" in
-        # Firefox already writes MPRIS art to a local file, so the common case
-        # needs no network at all.
-        file://*)  src=$(printf '%s' "$url" | sed 's|^file://||') ;;
-        # Spotify's native client hands out https URLs instead.
-        http*://*) src="$CACHE/.dl"
-                   curl -sfL --max-time 5 -o "$src" "$url" || exit 0 ;;
-        *)         exit 0 ;;
-    esac
-    [ -f "$src" ] || exit 0
-    # Centre-crop to a square, then pad the LEFT with transparency to form
-    # the inset. -gravity east anchors the art to the right of the wider
-    # canvas, so the padding lands on the left.
-    #
-    # PNG32: is load-bearing. ImageMagick picks the output format from the
-    # file EXTENSION, and this writes to a ".tmp" name it cannot interpret, so
-    # it silently falls back to the INPUT format. Firefox serves PNG, so the
-    # alpha survived and this looked fine; Spotify's CDN serves JPEG, which
-    # has no alpha channel, so the transparent inset was flattened to BLACK
-    # and showed as a black bar beside the cover. PNG32 forces RGBA out
-    # regardless of what came in.
-    magick "$src" -resize "${ART}x${ART}^" -gravity center -extent "${ART}x${ART}" \
-           -background none -gravity east -extent "$((ART + INSET))x${ART}" \
-           "PNG32:$out.tmp" 2>/dev/null || exit 0
-    mv -f "$out.tmp" "$out" || exit 0
-    # Firefox writes a fresh file per track, so this would grow without bound.
-    ls -1t "$CACHE"/*.png 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
-fi
-
-printf '%s\n' "$out"
+# Printing nothing leaves the previous image in place, which is the only safe
+# no-op: waybar's image module never releases its pixbuf. That is fine, because
+# the last frame of a fade-out is fully transparent.
+RUN="${XDG_RUNTIME_DIR:-/tmp}/waybar-albumart"
+REL=$(cat "$RUN/frame" 2>/dev/null) || exit 0
+[ -n "$REL" ] || exit 0
+[ -f "$RUN/$REL" ] && printf '%s\n' "$RUN/$REL"
