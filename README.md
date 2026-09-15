@@ -358,9 +358,13 @@ root-owned `0644`. No udev rule is needed; don't add one.
   our own. The patch is one local commit, so a reclone, a hard reset or a
   `git pull --rebase` gone wrong loses it silently and the only symptom is that
   the media key feels sluggish again. If that matters, push it to a fork.
-  - Built with `--no-default-features --features pulseaudio-backend,media-control`
+  - Built with
+    `--no-default-features --features pulseaudio-backend,media-control,daemon`
     and installed stripped. Plain `cargo install` would pull the default
-    features and a different backend.
+    features and a different backend. `daemon` was added so it can run headless
+    (`spotify_player -d`) — the TUI needs a controlling terminal and refuses to
+    start without one, and neither python's `pty.fork` nor `socat` would give
+    it one, which made the state fix below impossible to test otherwise.
   - **What the patch does:** transport commands go straight to the local
     librespot `spirc` when playback is on this machine's own device, instead of
     out to the Web API. Every pause used to be a round trip to Spotify and
@@ -370,6 +374,19 @@ root-owned `0644`. No udev rule is needed; don't add one.
     the Web API otherwise. That is not defensive padding: when playback is on a
     phone, a speaker or the web player, the Web API is the only way to reach it,
     and pausing our own idle device instead would silently do nothing.
+  - **The audio stopping and the state being reported are two different
+    problems.** Fixing the first left every MPRIS consumer — waybar's pause
+    glyph, the hyprwave autohide script — showing "Playing" for ~1.6s after a
+    local pause, because `media_control.rs` read the raw Web API snapshot
+    rather than `buffered_playback`, the working copy that librespot's events
+    and our own commands update instantly. Now ~0.2s.
+
+    The same device test is load-bearing here too, in the opposite direction:
+    `buffered_playback.is_playing` is only written for our own device, so for a
+    remote one it would go stale forever. `retrieve_current_playback` adopts
+    the API value into it for devices we do not drive, and deliberately not for
+    ours, where the response is 1-3s old and would overwrite newer local state
+    with older.
   - Separately, `client_id_command` in `.config/spotify-player/app.toml` is what
     stopped the `429`s; see the comments in that file. Both problems produced
     the same complaint ("it lags"), but they are unrelated — one was a shared
