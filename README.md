@@ -279,24 +279,40 @@ root-owned `0644`. No udev rule is needed; don't add one.
   `album-accent`), pushed to the private repo
   `PercyThomas1127/hyprwave-album-accent` — deliberately NOT named
   `hyprwave`, so it cannot be mistaken for upstream. `origin` is that repo,
-  `upstream` is `shantanubaddar/hyprwave`. Not the upstream build. Three commits
+  `upstream` is `shantanubaddar/hyprwave`. Not the upstream build. Four commits
   on top of upstream: the visualizer bars take their hue from the current album
   cover; GTK is no longer called from signal context (that was the crash that
-  killed the bar on 2026-09-13); and all five signals now arrive through a
-  self-pipe, with two new ones added. The original upstream binary and data
+  killed the bar on 2026-09-13); all five signals now arrive through a
+  self-pipe, with two new ones added; and a 250ms keepalive timer, without
+  which none of the signals arrive at all when the app is idle. The original upstream binary and data
   tree are backed up under `~/.local/share/hyprwave-backup-*/`, with a restore
   recipe in that directory.
   - **Signals are a self-pipe, and show/hide is idempotent.** Two things were
     wrong with upstream's signal handling, and `hyprwave-autohide` depends on
     both fixes:
-    - `g_unix_signal_add` does **not wake an idle GLib main loop**. MEASURED: a
-      SIGUSR1 sat undispatched for **6.759s**, with the process at 0% CPU in
-      `poll()`, until some unrelated Wayland or D-Bus event woke the loop; with
-      any periodic source attached the same signal dispatched in **0.002s**.
-      That is why the autohide script looked like it did nothing. It also made
-      the hide look separately broken — `reveal_child` FALSE with
-      `child_revealed` still TRUE 30s later reads like a stalled animation,
-      when in fact the handler had not run yet.
+    - **An idle main loop does not notice its own sources**, and the
+      self-pipe did NOT fix this — only the 250ms keepalive did. MEASURED: a
+      signal sat undispatched for **6.759s** with the process at 0% CPU in
+      `poll()`, until some unrelated Wayland or D-Bus event woke the loop;
+      with any periodic source attached, **0.002s**. That is why the autohide
+      script looked like it did nothing, and it also made the hide look
+      separately broken — `reveal_child` FALSE with `child_revealed` still
+      TRUE 30s later reads like a stalled animation, when the handler had
+      simply not run yet.
+
+      **This invalidates the obvious test.** Signals work for a few seconds
+      after a restart, because startup timers keep the loop turning, and stop
+      working once the app settles. A fix verified right after launch will
+      look correct and then "regress" hours later — which is exactly what
+      happened here. Always test a settled instance. The clean demonstration:
+      send a hide, watch nothing happen for 4s, then start any MPRIS player on
+      the bus; the pending hide applies immediately.
+
+      The keepalive is a **workaround** — a poll-based loop ought to wake on an
+      fd in its own poll set, and the reason this one does not is unexplained.
+      It costs nothing: idle CPU over 30s after a 30s settle was 2.80% with it,
+      2.70% without, 2.63% with it again. Measure only settled instances;
+      sampling 12s after startup gives 7-8% and is pure startup noise.
     - SIGUSR1 is a **blind toggle**, which cannot be reconciled against. A
       supervisor must then infer the current state, and its only readable proxy
       is the layer surface, which lags the ~300ms reveal animation. Pausing
