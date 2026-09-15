@@ -204,6 +204,21 @@ root-owned `0644`. No udev rule is needed; don't add one.
     `(art + inset) x art`, so `size` must equal art + inset — currently
     `38 + 10 = 48`.
 
+  **waybar's `image` module never releases its pixbuf.** Handed no path it
+  keeps drawing the last cover it loaded, so closing a player left the
+  previous album sitting in the bar next to a collapsed pill. Nothing the
+  script can emit fixes it: a transparent placeholder still occupies a sliver
+  of pill, and the image overflows its own container once the text half hides.
+  Only destroying and recreating the module clears it, so `mediaplayer.py`
+  sends waybar **SIGUSR2** (reload) on the art-to-no-art transition only --
+  never on ordinary track changes, which use the cheap signal.
+  Two consequences of that reload, both accepted deliberately:
+  - waybar forks on SIGUSR2 and never reaps the child, so each one leaves a
+    `waybar <defunct>` zombie. Harmless (one PID-table entry, `pid_max` is
+    4194304) and cleared at logout, but that is why `ps` shows them.
+  - it re-runs every module script, which is why `weather.py` had to be made
+    resilient — see below.
+
   Track changes are pushed, not polled: `mediaplayer.py` sends `SIGRTMIN+5` to
   waybar when the art URL changes, and deliberately not from `write_output`,
   which runs on every marquee tick.
