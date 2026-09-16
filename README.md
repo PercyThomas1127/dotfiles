@@ -447,6 +447,129 @@ root-owned `0644`. No udev rule is needed; don't add one.
     working one. Kill the old instance first. This is upstream behaviour, not
     something the fork introduced.
 
+    Measured on 2026-09-16, because a supervisor design depended on it: the
+    second launch exits **0 with 0 bytes of stdout and 0 bytes of stderr** —
+    completely silent — and the primary's `hyprwave-notification` layer
+    surfaces went **1 → 2**, both owned by the primary's pid. So it is worse
+    than a no-op *and* indistinguishable from success to anything watching
+    exit status. That combination is why `hyprwave-launch` clears strays
+    before exec'ing rather than trusting `Restart=` (which restarts on success
+    too, so each cycle would graft another window onto a healthy instance).
+
+- **hyprwave and hyprwave-autohide are systemd user units now**, not entries in
+  `hyprland.lua`'s autostart chain:
+  `~/.config/systemd/user/hyprwave.service` and `hyprwave-autohide.service`.
+  Both are `WantedBy=` and `After=wayland-session@hyprland.desktop.target`.
+  Manage with `systemctl --user {status,restart,stop} hyprwave`.
+
+  **The bug they fix: autohide was SHOOTING hyprwave during its own startup.**
+  `SIGRTMIN+3`/`+4` are real-time signals, and their default disposition is to
+  *terminate* the target — unlike a segfault, **without a core dump**
+  (`signal(7)`: "Term"). A process is signallable from `execve()` onward, i.e.
+  during dynamic linking, before `main()` has installed anything.
+  `hyprland.lua` launched hyprwave and autohide as simultaneous `&` siblings,
+  and autohide's first action is `reconcile()`, which sends a hide. Whether the
+  bar survived login was decided by the scheduler — hence "once in a while
+  hyprwave wouldn't launch".
+
+  Measured, sending `RTMIN+4` as soon as `pgrep` first saw the pid:
+  **5 of 12 launches killed** (exit 166 = 128+38, stderr empty — dead before
+  CSS even loads). With the readiness guard below: **0 of 12**, max wait 20ms.
+
+  That is also why it went undiagnosed for so long. No core dump to find; no
+  log line, because the `" & "` chain discards stdout, stderr *and* exit
+  status for all 13 entries; and the killer was always still running while its
+  victim was absent, so autohide looked like the innocent bystander that had
+  merely failed to notice. Running hyprwave under systemd is what finally
+  printed the answer:
+  `hyprwave.service: Main process exited, code=killed, status=38/RTMIN+4`.
+
+  Fixed at **both** ends, deliberately:
+  - hyprwave installs its `sigaction` handlers at the top of `main()`
+    (`install_signal_handlers()`), before `gtk_application_new`. Only the
+    GSource attachment still waits for `activate()`, because `on_sig_pipe()`
+    dispatches through `global_state`. Signals arriving in between are
+    buffered in the self-pipe and drained on attach, so an early hide is
+    applied *late* rather than fatally.
+  - autohide (`signals_ready()`) refuses to signal a process whose
+    `/proc/PID/status` `SigCgt` mask does not yet show `SIGRTMIN+4` (38)
+    caught. That is the kernel's own answer, and it is race-free in the safe
+    direction: the bit only ever goes unset→set, so observing it set means the
+    signal cannot be fatal.
+
+  **The in-process half cannot be sufficient by itself** — you cannot install a
+  handler before your own first instruction runs — so the sender-side guard is
+  the authoritative one. Do not remove it as an optimisation.
+
+  What the units add on top:
+  - **Ordering.** `wayland-session@.target` is itself
+    `After=wayland-session-waitenv.service`, whose description is literally
+    "Wait for WAYLAND_DISPLAY and other variables". On the failing boot
+    `exec_cmd` fired at 07:58:18 and waitenv only finished at 07:58:19, so
+    everything in that chain ran a second before the display was guaranteed.
+    This also removes the dependence on `dbus-update-activation-environment`
+    and `systemctl --user import-environment`, which were *themselves* racing
+    siblings in the same chain; uwsm exports `WAYLAND_DISPLAY` and
+    `HYPRLAND_INSTANCE_SIGNATURE` on its own (`systemctl --user
+    show-environment`).
+  - **`StartLimitIntervalSec=0`.** Not decoration: this box reports
+    `DefaultStartLimitBurst=5`, so a stock `Restart=always` unit that failed
+    five times quickly would enter `failed` and stay dead for the session —
+    reproducing the original symptom with a unit to blame. Backoff
+    (`RestartSec=1`, `RestartSteps`, `RestartMaxDelaySec=30`) is what keeps
+    "retry forever" from meaning "hot loop".
+  - **`OOMPolicy=continue`.** The default `stop` *stops* the unit when
+    something in its cgroup is OOM-killed, and a unit systemd stopped is not
+    one `Restart=` revives — exactly how the compositor came down on
+    2026-09-15. This machine has 7.3 GiB and does OOM.
+  - **A second recovery layer.** autohide's existing 10s heartbeat calls
+    `systemctl --user start --no-block hyprwave.service` when `pgrep` finds
+    nothing (throttled to 30s via a stamp in `$XDG_RUNTIME_DIR`). It goes
+    through systemd precisely so there is still exactly **one** spawner — see
+    the duplicate-bar measurement above. Verified: an explicit
+    `systemctl stop` (which systemd will not itself undo) was recovered in 6s
+    with one instance and no duplicate surfaces.
+  - **Failure-only logging** to `~/.cache/hyprwave/last-failure.log`, written
+    from `ExecStopPost` and capped at 400 lines. Gating on "stderr is
+    non-empty" would not work — a *healthy* start emits four Gtk-WARNING theme
+    parser lines. It logs when `SERVICE_RESULT != success`, or when a process
+    that exited *on its own* (`EXIT_CODE=exited`) ran less than 5s, which is
+    how the silent exit-0 case is caught. A systemd-initiated stop always
+    reports `code=killed` and is never logged: without that clause, 15 rapid
+    `systemctl restart` calls wrote 9 useless entries.
+  - **`StandardOutput=null`.** hyprwave writes a per-frame animation trace to
+    stdout (`TICK t=0.222 eased=0.044 req=258x63 ALLOC=258x64`, one line per
+    frame). Measured over one 5s start: stdout 23 lines of chatter, stderr 8
+    lines and nothing but diagnostics. Journalling stdout would mean disk
+    writes every frame and buried the real error 40 lines deep the first time
+    the log fired.
+  - `hyprwave-autohide.service` needs **`KillSignal=SIGKILL` *and*
+    `SuccessExitStatus=SIGKILL`**. `SIGTERM` does not stop that script — it
+    lives blocked in `playerctl -a --follow status | while read`, and `sh`
+    defers a trap until the current command finishes, which for that pipeline
+    is never. Measured: `kill -TERM` left it running, and restarting it
+    therefore *accumulated* instances (six processes across two copies at
+    once). But `KillSignal=SIGKILL` alone makes every clean stop record
+    "Failed with result 'signal'" and leave the unit `failed`, so the second
+    directive is required to keep a normal logout from looking like a crash.
+
+- **Two measurement traps cost real time on 2026-09-16; both produce a
+  confident, wrong zero.**
+  - `hyprctl layers` lines *end with the pid*
+    (`..., namespace: hyprwave, pid: 37480`), so `grep 'namespace: hyprwave$'`
+    never matches and reports the bar as absent while it is plainly on screen.
+    Match `'namespace: hyprwave,'` — with the comma, which also excludes
+    `hyprwave-notification`. This produced a whole false investigation into
+    "show is broken"; the A/B against a pre-change build was identical, which
+    is what exposed the instrument rather than the code.
+  - `pactl list short source-outputs` **has no application-name column**, so
+    grepping it for `hyprwave` cannot ever match. Count taps with
+    `pactl list source-outputs | grep -c 'application.name = "HyprWave'`. The
+    per-stream taps also report `Source: 4294967295`, which is correct — see
+    the `pa_stream_set_monitor_stream` note.
+  - Corollary, for both: when a detector says "zero", verify it against a
+    state known to be non-zero before believing it.
+
 - **`spotify_player` is a local patched build, and the patch is NOT backed up
   anywhere.** `~/.local/bin/spotify_player` is built from `~/Developer/spotify-player`,
   whose `origin` is **upstream** `aome510/spotify-player` — there is no fork of
@@ -575,6 +698,16 @@ root-owned `0644`. No udev rule is needed; don't add one.
   - **The timer alone made it worse**, by making overlap more frequent. Both
     halves are needed; adding the watchdog without serializing pushed the
     capture count higher, not lower.
+  - **History correction:** commit `d300046` says "serialize rescans, *and
+    reconcile on a timer too*", and this entry described both — but only the
+    serialization half actually shipped. The timer was lost to a
+    `git checkout -- visualizer.c` used to clear instrumentation, and the
+    commit message and this README were written as though it had survived. The
+    capture set was therefore purely event-driven from `d300046` until
+    2026-09-16, when the timer was restored (`reconcile_timer_cb`,
+    `VIS_RECONCILE_INTERVAL_USEC`). Verified after restoring: 1 tap for 1
+    playing stream held steady for 21s with no climb, and the tap was dropped
+    cleanly when the stream ended.
   - Verified 8 of 8 pause/resume cycles with nothing else open, waveform alive
     every time and the count no longer climbing.
 

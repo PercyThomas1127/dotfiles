@@ -1,0 +1,71 @@
+# hyprwave used to be one of 13 entries in the `" & "`-joined exec_cmd in
+# hyprland.lua, and intermittently lost the race to start: no bar at all for a
+# whole session, and nothing in any log. This unit exists for the ordering as
+# much as the supervision -- see hyprwave-launch for the measurements.
+[Unit]
+Description=hyprwave MPRIS music bar
+Documentation=https://github.com/shantanubaddar/hyprwave
+
+# THE ACTUAL FIX for the observed failure. wayland-session@.target is
+# After=wayland-session-waitenv.service, whose description is literally "Wait
+# for WAYLAND_DISPLAY and other variables" -- so by the time we start, the
+# compositor is up AND its environment has been exported into the systemd user
+# manager. MEASURED on the failing boot: exec_cmd fired at 07:58:18, waitenv
+# only finished at 07:58:19. Everything in that shell string, hyprwave
+# included, ran a full second before the display was guaranteed to be there.
+#
+# This also removes a dependency on two of hyprwave's former racing siblings:
+# `dbus-update-activation-environment` and `systemctl --user import-environment`
+# are entries in that same chain, so nothing ordered them before hyprwave
+# either. uwsm exports WAYLAND_DISPLAY and HYPRLAND_INSTANCE_SIGNATURE on its
+# own (verified in `systemctl --user show-environment`), which is what this
+# unit relies on.
+After=wayland-session@hyprland.desktop.target
+PartOf=graphical-session.target
+
+# Never give up. This system reports DefaultStartLimitBurst=5, so the stock
+# behaviour is to enter `failed` after five quick failures and STAY DEAD for
+# the rest of the session -- which is indistinguishable from the bug being
+# fixed here. Backoff below keeps "retry forever" from meaning "hot loop".
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=%h/.config/hypr/scripts/hyprwave-launch
+# Writes ~/.cache/hyprwave/last-failure.log, and ONLY on a failure. systemd
+# exports SERVICE_RESULT/EXIT_CODE/EXIT_STATUS here, which is the only place
+# the silent exit-0 case is distinguishable from a healthy start.
+ExecStopPost=%h/.config/hypr/scripts/hyprwave-launch log-failure
+
+# hyprwave writes a per-frame animation trace to STDOUT ("TICK t=0.222
+# eased=0.044 req=258x63 ALLOC=258x64", one line per frame, plus every icon
+# lookup). Under the old exec_cmd that went to /dev/null; journalling it would
+# mean disk writes on every frame of every animation, and it buried the actual
+# error 40 lines deep the first time this log fired.
+#
+# MEASURED over one 5s startup: stdout 23 lines / 1322 B of progress chatter,
+# stderr 8 lines / 474 B and nothing BUT diagnostics (four Gtk-WARNING theme
+# parser errors). The two channels are cleanly split, so keep stderr and drop
+# stdout: that is also what makes "log failures, not normal output" true of the
+# journal and not just of the file.
+StandardOutput=null
+StandardError=journal
+
+# always, not on-failure: the single-instance remote path exits 0, and a bar
+# that has quietly vanished still needs bringing back.
+Restart=always
+RestartSec=1
+# Exponential 1s -> 30s (systemd 259). A genuinely broken binary retries
+# forever without spinning; a transient race is recovered in about a second.
+RestartSteps=5
+RestartMaxDelaySec=30
+
+# Default OOMPolicy=stop STOPS the unit when a process in its cgroup is
+# OOM-killed, and a unit systemd stopped is not a unit Restart= revives. That
+# is precisely how the compositor came down on 2026-09-15 (see the
+# wayland-wm@hyprland.desktop.service.d/oom.conf drop-in). This machine has
+# 7.3 GiB and does OOM, so say continue and let Restart= do its job.
+OOMPolicy=continue
+
+[Install]
+WantedBy=wayland-session@hyprland.desktop.target

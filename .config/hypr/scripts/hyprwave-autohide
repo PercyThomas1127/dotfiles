@@ -56,13 +56,106 @@ want_shown() { playerctl -a status 2>/dev/null | grep -q '^Playing$'; }
 #     loop, which is why this script used to look like it did nothing.
 #     hyprwave now routes signals through a self-pipe sitting in the loop's
 #     poll set, dispatching in ~2ms.
+
+# Is this process able to RECEIVE our signals yet?
+#
+# THIS GUARD IS THE FIX for "once in a while hyprwave wouldn't launch". It is
+# not a nicety, and it must not be removed as an optimisation.
+#
+# SIGRTMIN+3/+4 are real-time signals, and their DEFAULT disposition is to
+# TERMINATE the target -- without a core dump (signal(7): "Term"). hyprwave
+# installs its handlers in main(), but a process is visible to `pgrep` from
+# execve() onward, i.e. during dynamic linking, before a line of its own code
+# has run. Signalling in that window does not hide the bar, it kills it.
+#
+# That is what was happening: hyprland.lua started hyprwave and this script as
+# simultaneous `&` siblings, and reconcile() below runs as this script's first
+# action. Whether the bar survived login was decided by the scheduler. It also
+# explains why the failure was invisible for so long -- no core dump to find,
+# no message anywhere, and the killer (this script) was still running happily
+# while its victim was absent, looking like a bystander that had merely failed
+# to notice.
+#
+# MEASURED, sending RTMIN+4 as soon as pgrep first sees the pid:
+#     without this guard   5 of 12 launches killed (exit 166 = 128 + 38)
+#     with this guard       0 of 12 killed, max wait 20ms
+#
+# SigCgt in /proc/PID/status is the kernel's own mask of CAUGHT signals, so
+# this asks the only authority that matters, and it is race-free in the safe
+# direction: a bit goes unset -> set and never back, so observing it set means
+# the signal cannot be fatal. Bit (n-1) corresponds to signal n; we test
+# SIGRTMIN+4 = 38 (glibc reserves 32 and 33, so SIGRTMIN is 34), because that
+# is the same handler installation that arms +3.
+#
+# awk, not python, to keep this script's startup cost where it was.
+signals_ready() {
+    awk -v sig=38 '
+        /^SigCgt:/ {
+            mask = $2
+            bit  = sig - 1
+            # hex digit holding that bit, counting from the right
+            d = substr(mask, length(mask) - int(bit / 4), 1)
+            v = index("0123456789abcdef", tolower(d)) - 1
+            if (v >= 0 && int(v / 2 ^ (bit % 4)) % 2 == 1) caught = 1
+            exit
+        }
+        # The status must be decided HERE, not in the block above. awk `exit`
+        # jumps to END, so an `exit 0` up there is immediately overridden by
+        # whatever END exits with -- which had this function reporting "not
+        # ready" for every process, including one whose mask was plainly
+        # correct. The bar would then never have hidden or shown again.
+        END { exit caught ? 0 : 1 }
+    ' "/proc/$1/status" 2>/dev/null
+}
+
+# hyprwave is absent entirely: ask systemd for it rather than spawning it here.
+#
+# `systemctl start` is idempotent -- a no-op on an already-active unit -- which
+# is what keeps this a PROD and not a second spawner. That distinction is
+# load-bearing: hyprwave is a single-instance GApplication, and a second launch
+# does not fail safely. MEASURED: it exits 0 with zero output, and the remote
+# Activate re-enters the PRIMARY's unguarded activate(), which builds another
+# window and overwrites global_state -- the primary's notification layer
+# surfaces went 1 -> 2. Two spawners here would mean duplicate bars, so there
+# is exactly one owner and this defers to it. See hyprwave.service.
+#
+# --no-block so a unit stuck in restart backoff cannot stall this loop.
+RECOVER_THROTTLE=30      # seconds between attempts
+RECOVER_STAMP="${XDG_RUNTIME_DIR:-/tmp}/hyprwave-autohide.recover"
+recover() {
+    # Throttled because reconcile() is also driven by the MPRIS event loop,
+    # which can fire many times a second; without this, a missing hyprwave
+    # would mean a systemctl call per event.
+    now=$(date +%s)
+    last=0
+    [ -r "$RECOVER_STAMP" ] && last=$(cat "$RECOVER_STAMP" 2>/dev/null)
+    case "$last" in ''|*[!0-9]*) last=0 ;; esac
+    [ $((now - last)) -lt "$RECOVER_THROTTLE" ] && return 0
+    echo "$now" > "$RECOVER_STAMP" 2>/dev/null
+
+    # Only if the unit is actually installed, so removing the unit degrades to
+    # the old behaviour instead of erroring every heartbeat.
+    systemctl --user cat hyprwave.service >/dev/null 2>&1 || return 0
+    systemctl --user start --no-block hyprwave.service 2>/dev/null
+}
+
 reconcile() {
-    pid=$(pgrep -x hyprwave) || return 0
+    # Absent and ambiguous are DIFFERENT cases and must not share a branch, so
+    # test emptiness first: an earlier draft folded '' into the case below and
+    # a missing hyprwave then returned without ever asking for a recovery.
+    pid=$(pgrep -x hyprwave 2>/dev/null)
+    [ -n "$pid" ] || { recover; return 0; }
+
     # pgrep can return SEVERAL pids, and that string would make `kill` fail
     # outright. Anything not a single number means the state is ambiguous, so
     # do nothing rather than signal the wrong process -- the same multi-pid
-    # trap that once started a second waybar.
-    case "$pid" in ''|*[!0-9]*) return 0 ;; esac
+    # trap that once started a second waybar. Deliberately NOT a recovery
+    # either: too many is not the same problem as none.
+    case "$pid" in *[!0-9]*) return 0 ;; esac
+
+    # Still starting up: say nothing at all. The heartbeat retries in
+    # HEARTBEAT seconds, by which time it is ready -- measured 20ms.
+    signals_ready "$pid" || return 0
 
     if want_shown; then
         kill -s RTMIN+3 "$pid" 2>/dev/null

@@ -1,0 +1,56 @@
+# The companion to hyprwave.service. It is a unit for the same reason hyprwave
+# is -- it was a racing `&` sibling in hyprland.lua -- plus three problems of
+# its own, all observed on 2026-09-16 while fixing the launch bug:
+#
+#  * It could not be stopped. `kill -TERM` left it running: the script spends
+#    its life blocked in `playerctl -a --follow status | while read`, and sh
+#    defers a trap until the current command finishes, which for that pipeline
+#    is never. See KillSignal below.
+#  * So restarting it ACCUMULATED instances -- six processes across two copies
+#    at once, each signalling hyprwave independently.
+#  * Nothing supervised it. That matters more now than it used to, because
+#    reconcile() is hyprwave's second recovery layer: if this script is dead,
+#    the redundancy is gone and nothing says so.
+#
+# systemd fixes all three structurally: one instance, a cgroup that can be
+# killed as a unit, and a restart if it dies.
+[Unit]
+Description=hyprwave autohide (bar visible only while something is playing)
+After=wayland-session@hyprland.desktop.target hyprwave.service
+# Expresses the real relationship: this script exists to drive hyprwave, and
+# its reconcile() will start it if it is missing.
+Wants=hyprwave.service
+PartOf=graphical-session.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=%h/.config/hypr/scripts/hyprwave-autohide
+Restart=always
+RestartSec=2
+RestartSteps=3
+RestartMaxDelaySec=30
+
+# SIGTERM is measured NOT to stop this script (see the header), so asking for
+# it politely would just mean waiting out TimeoutStopSec on every logout.
+# There is nothing to clean up: the only child is the heartbeat subshell, and
+# KillMode=control-group (the default) takes the whole cgroup with it.
+KillSignal=SIGKILL
+# ...and SIGKILL must then be counted as a NORMAL death, or every ordinary
+# stop lands the unit in `failed`. MEASURED before adding this: a plain
+# `systemctl --user stop` logged "Main process exited, code=killed,
+# status=9/KILL" followed by "Failed with result 'signal'", and left
+# ActiveState=failed -- so a clean logout would have looked like a crash, in
+# exactly the logs being set up to make real crashes visible.
+#
+# Restart=always does not distinguish success from failure, so nothing is lost
+# in recovery terms: an OOM kill or an outside SIGKILL still brings it back.
+SuccessExitStatus=SIGKILL
+
+# The script prints nothing on purpose; keep stderr in case it ever does.
+StandardOutput=null
+StandardError=journal
+OOMPolicy=continue
+
+[Install]
+WantedBy=wayland-session@hyprland.desktop.target

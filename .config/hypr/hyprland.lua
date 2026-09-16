@@ -102,17 +102,32 @@ hl.on("hyprland.start", function ()
     --             stuck. Absolute path: Hyprland's exec does not reliably
     --             inherit the login PATH.
     os.getenv("HOME") .. "/.local/bin/wlpause --freeze",
-    -- MPRIS music control bar (github.com/shantanubaddar/hyprwave), built from
-    -- source and installed to ~/.local/bin. Absolute path because Hyprland's
-    -- exec does not reliably inherit the login PATH.
-    -- Anchored to the bottom edge in ~/.config/hyprwave/config.conf so it does
-    -- not collide with waybar at the top.
-    os.getenv("HOME") .. "/.local/bin/hyprwave",
-    -- Shows hyprwave only while something is actually playing. hyprwave has
-    -- no auto-hide option and its only control is a blind SIGUSR1 toggle, so
-    -- the watcher reads the real state from the compositor (hiding destroys
-    -- hyprwave's layer surface) and toggles only on mismatch.
-    os.getenv("HOME") .. "/.config/hypr/scripts/hyprwave-autohide",
+    -- NOTE: hyprwave and hyprwave-autohide used to be two entries HERE, and
+    -- were moved to systemd user units on 2026-09-16:
+    --   ~/.config/systemd/user/hyprwave.service
+    --   ~/.config/systemd/user/hyprwave-autohide.service
+    -- Start/stop them with `systemctl --user {start,stop,status} hyprwave`.
+    --
+    -- They were moved because being entries in this list is what broke them.
+    -- Everything below is joined with " & ": 13 commands launched at once,
+    -- in no order, with exit status, stdout and stderr all discarded.
+    --
+    -- hyprwave intermittently did not come up at all, for an entire session,
+    -- with nothing in any log. The cause was the two of them being SIBLINGS:
+    -- autohide's first action is to send hyprwave SIGRTMIN+4 (hide), the
+    -- default disposition of a real-time signal is to TERMINATE -- and to do
+    -- it without a core dump -- and a process is signallable from execve()
+    -- onward, before its own main() has installed any handler. So autohide
+    -- shot hyprwave during startup, often enough to notice and rarely enough
+    -- to look random. MEASURED: signalling as soon as pgrep saw the pid
+    -- killed 5 of 12 launches. Nothing was logged because of the discarding
+    -- above; there was no core dump to find either.
+    --
+    -- Both ends are now fixed (handlers installed first thing in main(), and
+    -- autohide checks /proc/PID/status SigCgt before signalling), so this is
+    -- no longer load-bearing -- but the units also give ordering after
+    -- wayland-session@.target, a restart if either dies, and a real place for
+    -- failures to be recorded. Do not move them back here.
     "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP",
     "systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP",
     -- kept from the previous setup: these are unrelated to the rice

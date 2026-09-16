@@ -1,0 +1,176 @@
+#!/bin/sh
+# Launch hyprwave under systemd, and make a failed launch visible.
+#
+# Why this exists at all: hyprwave intermittently failed to appear on a fresh
+# session and never recovered, with NO trace anywhere. Two measured facts
+# explain both halves of that.
+#
+#  1. hyprwave's own startup code contains no exit()/abort()/g_error() and no
+#     early return between activate() (main.c:1807) and gtk_window_present
+#     (main.c:2191) -- every failure it detects itself is warn-and-continue.
+#     So a launch can only die BEFORE activate, inside GTK/GIO. MEASURED with
+#     WAYLAND_DISPLAY pointing at a nonexistent socket:
+#         exit 1, "Gtk-WARNING **: Failed to open display", no coredump.
+#     GDK_BACKEND=wayland is set in this session, so there is no X11 fallback
+#     to soften a missing socket: it is fatal.
+#
+#  2. It was launched from the `" & "`-joined exec_cmd in hyprland.lua, which
+#     discards stdout, stderr and exit status for all 13 entries. Hence "no
+#     trace": the diagnostic existed, nothing was listening.
+#
+# The compositor-readiness half of the fix is the unit's ordering, not this
+# script -- see hyprwave.service. This script handles the two things systemd
+# cannot: adopting strays, and noticing a silent success.
+#
+# THE SILENT SUCCESS is the subtle one, and it is the reason the stray check
+# below is mandatory rather than tidy. hyprwave is a single-instance
+# GApplication (G_APPLICATION_DEFAULT_FLAGS, main.c:2387). MEASURED, launching
+# a second copy while the first owns com.hyprwave.app:
+#         exit 0, 0 bytes stdout, 0 bytes stderr
+# and it does NOT merely no-op -- the remote Activate re-enters the PRIMARY's
+# activate(), which is unguarded: it allocates a fresh AppState, builds another
+# window and overwrites global_state (main.c:1807/1825/2251), after which
+# signals drive only the newest bar. Observed directly: the primary's
+# hyprwave-notification layer surfaces went 1 -> 2, both owned by the same pid.
+#
+# That is lethal in combination with Restart=always, which restarts on success
+# too: every restart would exit 0 instantly and graft one more orphaned window
+# onto a perfectly healthy instance. So this script guarantees the unit OWNS
+# the instance it supervises, by clearing any other copy first.
+
+BIN="$HOME/.local/bin/hyprwave"
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/hyprwave"
+FAILLOG="$CACHE/last-failure.log"
+STAMP="${XDG_RUNTIME_DIR:-/tmp}/hyprwave-launch.stamp"
+FAILLOG_MAX_LINES=400   # this file is diagnostics, not a journal; see below
+MIN_HEALTHY_RUN=5       # seconds; a real session lasts hours
+
+# ---------------------------------------------------------------- log-failure
+# Run from ExecStopPost, where systemd exports SERVICE_RESULT, EXIT_CODE and
+# EXIT_STATUS. Per the "only log failures, not normal output" decision, this
+# writes nothing on a healthy run.
+#
+# Gating on stderr being non-empty would NOT work: a perfectly good start emits
+# four Gtk-WARNING theme-parser lines (MEASURED -- "Junk at end of value for
+# transition" and friends, from hyprwave's built-in CSS). Normal runs are noisy,
+# so the signal has to come from how the process EXITED.
+#
+# Two conditions, because exit status alone cannot see the bug above:
+#   * SERVICE_RESULT != success  -- crashes, nonzero exits, timeouts
+#   * a run shorter than MIN_HEALTHY_RUN, whatever the code -- this is what
+#     catches the silent exit-0 remote path, which reports success
+# A clean logout is result=success after hours, so it stays silent. Logging out
+# within a few seconds of logging in writes one harmless entry.
+if [ "$1" = "log-failure" ]; then
+    now=$(date +%s)
+    started=0
+    [ -r "$STAMP" ] && started=$(cat "$STAMP" 2>/dev/null)
+    case "$started" in ''|*[!0-9]*) started=0 ;; esac
+    ran=$((now - started))
+    [ "$started" -eq 0 ] && ran=-1
+
+    # A stop that systemd itself initiated always reports code=killed (its
+    # SIGTERM, or SIGKILL after a timeout). That is never a failure, at any
+    # duration -- MEASURED: without this clause, 15 rapid `systemctl restart`
+    # calls wrote 9 entries all reading
+    #     result=success code=killed status=TERM ran=1s
+    # which is exactly the kind of noise that buries the one entry worth
+    # reading.
+    #
+    # The short-run test below therefore only applies to a process that exited
+    # ON ITS OWN (code=exited), which is precisely the silent single-instance
+    # case: exit 0, no output, no window. Those two cases are distinguishable,
+    # so distinguish them.
+    if [ "${SERVICE_RESULT:-success}" = "success" ]; then
+        [ "${EXIT_CODE:-}" = "killed" ] && exit 0
+        [ "$ran" -ge "$MIN_HEALTHY_RUN" ] && exit 0
+    fi
+
+    mkdir -p "$CACHE" 2>/dev/null
+    {
+        echo "=== $(date -Is) hyprwave launch failed ==="
+        echo "result=${SERVICE_RESULT:-?} code=${EXIT_CODE:-?} status=${EXIT_STATUS:-?} ran=${ran}s"
+        echo "WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-(unset)}"
+        # stderr went to the journal; pull just this unit's tail back out so the
+        # file is self-contained. This is the line that identifies the cause:
+        #   "Failed to open display"  -> compositor was not ready (or no socket)
+        #   "Failed to register"      -> session bus
+        #   nothing, and exit 0       -> another instance owned the bus name
+        journalctl --user -u hyprwave.service -n 40 --no-pager -o cat 2>/dev/null \
+            | sed 's/^/  | /'
+        echo
+    } >> "$FAILLOG" 2>/dev/null
+
+    # Keep it bounded. The cautionary example is this machine's 8MB tmpfs
+    # Hyprland log; a diagnostic that fills the disk is not a diagnostic.
+    if [ "$(wc -l < "$FAILLOG" 2>/dev/null || echo 0)" -gt "$FAILLOG_MAX_LINES" ]; then
+        tail -n "$FAILLOG_MAX_LINES" "$FAILLOG" > "$FAILLOG.tmp" 2>/dev/null \
+            && mv -f "$FAILLOG.tmp" "$FAILLOG" 2>/dev/null
+    fi
+    exit 0
+fi
+
+# --------------------------------------------------------------------- launch
+# Stamp FIRST, before the preflight checks below. When this was stamped just
+# before exec, an attempt that failed in preflight never updated it, so the
+# duration in the failure log was measured from the last SUCCESSFUL start --
+# it reported ran=19s, 20s, 23s, 27s for four launches that each died in well
+# under a second. The stamp marks the start of this ATTEMPT, which is the
+# quantity the log means, and which the exit-0 test depends on being right.
+date +%s > "$STAMP" 2>/dev/null
+
+[ -x "$BIN" ] || { echo "hyprwave-launch: $BIN is not executable" >&2; exit 1; }
+
+# Fail with a message that names the actual problem. The unit is ordered after
+# wayland-session@.target, which is itself After=wayland-session-waitenv.service
+# ("Wait for WAYLAND_DISPLAY and other variables"), so this should be
+# unreachable -- but if that ordering ever breaks, "socket does not exist" in
+# the failure log beats GTK's generic warning.
+if [ -z "$WAYLAND_DISPLAY" ]; then
+    echo "hyprwave-launch: WAYLAND_DISPLAY is unset; refusing to start" >&2
+    exit 1
+fi
+case "$WAYLAND_DISPLAY" in
+    /*) sock="$WAYLAND_DISPLAY" ;;
+    *)  sock="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/$WAYLAND_DISPLAY" ;;
+esac
+if [ ! -e "$sock" ]; then
+    echo "hyprwave-launch: wayland socket $sock does not exist" >&2
+    exit 1
+fi
+
+# Clear any copy we are not about to become, so the bus name is free and the
+# re-entrant-activate bug above cannot fire. See the header for why this is
+# mandatory under Restart=always.
+#
+# `pgrep -x`, matching the process NAME exactly -- deliberately NOT `pgrep -f`.
+# A -f pattern also matches the command line of whatever is doing the asking,
+# which in this repo has already killed the wrong process three times. `-x
+# hyprwave` cannot match this script (comm is "hyprwave-launch") nor
+# hyprwave-autohide.
+strays=$(pgrep -x hyprwave 2>/dev/null)
+if [ -n "$strays" ]; then
+    # Normally empty: systemd only restarts us once the old main process is
+    # gone. This fires for a copy started outside the unit -- a survivor of a
+    # previous session still holding com.hyprwave.app (its Wayland connection
+    # dead, so it has no surfaces and cannot be seen), or a manual launch. Both
+    # get adopted rather than fought with.
+    kill -TERM $strays 2>/dev/null
+    i=0
+    while [ "$i" -lt 20 ] && pgrep -x hyprwave >/dev/null 2>&1; do
+        sleep 0.1
+        i=$((i + 1))
+    done
+    remaining=$(pgrep -x hyprwave 2>/dev/null)
+    [ -n "$remaining" ] && kill -KILL $remaining 2>/dev/null
+    # The bus name is released when the owner's connection drops, which is not
+    # synchronous with its death; give the broker a moment or we race it and
+    # become a silent no-op ourselves.
+    sleep 0.3
+fi
+
+
+# exec, so the unit's main process IS hyprwave: systemd sees its real exit
+# status, Restart= reacts to the real death, and `pgrep -x hyprwave` in
+# hyprwave-autohide still finds it.
+exec "$BIN" "$@"
