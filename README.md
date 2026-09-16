@@ -279,7 +279,7 @@ root-owned `0644`. No udev rule is needed; don't add one.
   `album-accent`), pushed to the private repo
   `PercyThomas1127/hyprwave-album-accent` — deliberately NOT named
   `hyprwave`, so it cannot be mistaken for upstream. `origin` is that repo,
-  `upstream` is `shantanubaddar/hyprwave`. Not the upstream build. Five commits
+  `upstream` is `shantanubaddar/hyprwave`. Not the upstream build. Six commits
   on top of upstream: the visualizer bars take their hue from the current album
   cover; GTK is no longer called from signal context (that was the crash that
   killed the bar on 2026-09-13); all five signals now arrive through a
@@ -429,6 +429,31 @@ root-owned `0644`. No udev rule is needed; don't add one.
     `playerctl --follow` waits for arrives ~1.0s late, which is souvlaki's
     1-second event cadence. `stdbuf -oL` makes no difference — it is not
     output buffering.
+
+- **The visualizer has to FOLLOW the sink, not the default sink.** The waveform
+  used to flatline the moment headphones were plugged in, and stay flat until
+  they came out. hyprwave connected its capture stream once to
+  `@DEFAULT_MONITOR@` and never moved.
+
+  The reason is the audio graph on this machine: the speaker path is the
+  `audio_effect.j313-convolver` *filter* sink (the speaker-protection
+  convolver, which must never be bypassed) and the headphone jack is a separate
+  real sink. Plugging in moves the playback streams to the headphone sink but
+  leaves the **configured default sink still pointing at the convolver** — so
+  the visualizer sat on a monitor with no audio on it, and restarting did not
+  help because `@DEFAULT_MONITOR@` resolved to the same wrong sink.
+
+  It now takes the sink of the newest **un-corked** sink-input and re-scans on
+  `SINK_INPUT` / `SERVER` events. Two traps found by reading the live graph:
+  - "any un-corked input" is wrong: `speech-dispatcher-dummy` holds a
+    permanently un-corked, silent stream on the speaker path. Meanwhile
+    Firefox sat *corked* on the headphone sink and spotify-player un-corked on
+    it, so the newest-un-corked rule is what picks correctly.
+  - do **not** subscribe to `SINK` events; they fire on every volume tick.
+  - Useful commands: `pactl list source-outputs` shows which source HyprWave is
+    capturing from, `pactl list sink-inputs` shows which sink each app plays
+    to, and `pactl move-sink-input <id> <sink>` tests the following logic
+    without touching hardware.
 
 - **Do NOT "fix" the `!important` in hyprwave's stylesheet.**
   `~/.local/share/hyprwave/style.css` contains, in its `.no-transition` rule:
