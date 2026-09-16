@@ -113,6 +113,54 @@ root-owned `0644`. No udev rule is needed; don't add one.
 
 ## Notes and gotchas
 
+- **A single OOM-killed app used to take down the entire desktop**, and the
+  fix is `.config/systemd/user/wayland-wm@hyprland.desktop.service.d/oom.conf`.
+  systemd's default `OOMPolicy=` for a service is **`stop`**: if any process in
+  the unit is killed by the kernel OOM killer, systemd stops the whole unit —
+  and the compositor, every autostart and every app launched from the session
+  all live in `wayland-wm@hyprland.desktop.service`.
+
+  Happened on 2026-09-15 19:17:29. RAM was exhausted (~8 MB free of 7.3 GB,
+  2.03 GB **unevictable**, 2.09 GB shmem, kernel failing an *order-0*
+  allocation inside `zswap_writeback_entry → shrink_slab`), and the OOM killer
+  picked two **VS Code helper** processes of 32 MB and 11 MB — VS Code marks
+  its children with `oom_score_adj=300`, making them first victims. systemd
+  then stopped the unit, the session logged out, and the greeter came up.
+  Reading it as "Hyprland crashed" is wrong and wastes time:
+  - there was **no coredump and no Hyprland crash report**, because Hyprland
+    was never the process that died;
+  - `journalctl -b | grep -i 'oom'` finds it in one line:
+    `wayland-wm@hyprland.desktop.service: The kernel OOM killer killed some
+    processes in this unit`;
+  - the end of the old session's `hyprland.log` shows only
+    `SYN_DROPPED - some input events have been lost`, which is a *symptom* of
+    the reclaim stall, not a cause.
+
+  The unit also carries `OOMScoreAdjust=200` from uwsm, which makes everything
+  in the session a **preferred** victim relative to system services. Left as-is
+  for now.
+
+- **Aftermath to check after any session teardown.** Orphans survive it and
+  carry the dead `HYPRLAND_INSTANCE_SIGNATURE`, so they talk to the wrong
+  compositor or fight the new session's copies:
+  - `hyprwave` did **not** come back on its own; it needs starting by hand.
+  - three `hyprwave-autohide` loops survived and ran alongside the new ones.
+  - the dead session's log stays in `$XDG_RUNTIME_DIR`, which is **tmpfs, so it
+    holds RAM** — 8 MB in that instance, on a machine that had just run out.
+    `rm -rf $XDG_RUNTIME_DIR/hypr/<old-signature>` once nothing references it.
+
+- **Hyprland's log is 99.5% libinput debug spam and there is no way to turn it
+  off.** 65128 of 65440 lines in an 8 MB log; it grows ~2.7 MB/hour, or ~32 MB
+  of RAM over a 12-hour session, because it lives in tmpfs. Checked and ruled
+  out: `debug:disable_logs` is already `true` and does not suppress it (the
+  lines come from **aquamarine**, not Hyprland's own logger), aquamarine
+  exposes no log-level env var (only `AQ_DRM_DEVICES`, `AQ_NO_ATOMIC`,
+  `AQ_NO_MODIFIERS`, `AQ_LIBINPUT_NO_PLUGINS`, `AQ_FORCE_LINEAR_BLIT`,
+  `AQ_MGPU_NO_EXPLICIT`, `AQ_NO_KMS_REQUIREMENT`), and `Hyprland --help` has no
+  log flag. Worth knowing because it **destroys the log history you need for
+  anything else** — a real input/compositor bug scrolls out of the window fast.
+
+
 - **Log in via the `Hyprland (uwsm)` session.** The plain session never
   activates `graphical-session.target`, so `xdg-desktop-portal` fails and
   screen sharing and GTK file pickers silently break.
