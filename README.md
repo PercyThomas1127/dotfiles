@@ -279,7 +279,7 @@ root-owned `0644`. No udev rule is needed; don't add one.
   `album-accent`), pushed to the private repo
   `PercyThomas1127/hyprwave-album-accent` — deliberately NOT named
   `hyprwave`, so it cannot be mistaken for upstream. `origin` is that repo,
-  `upstream` is `shantanubaddar/hyprwave`. Not the upstream build. Six commits
+  `upstream` is `shantanubaddar/hyprwave`. Not the upstream build. Seven commits
   on top of upstream: the visualizer bars take their hue from the current album
   cover; GTK is no longer called from signal context (that was the crash that
   killed the bar on 2026-09-13); all five signals now arrive through a
@@ -443,17 +443,48 @@ root-owned `0644`. No udev rule is needed; don't add one.
   the visualizer sat on a monitor with no audio on it, and restarting did not
   help because `@DEFAULT_MONITOR@` resolved to the same wrong sink.
 
-  It now takes the sink of the newest **un-corked** sink-input and re-scans on
-  `SINK_INPUT` / `SERVER` events. Two traps found by reading the live graph:
-  - "any un-corked input" is wrong: `speech-dispatcher-dummy` holds a
-    permanently un-corked, silent stream on the speaker path. Meanwhile
-    Firefox sat *corked* on the headphone sink and spotify-player un-corked on
-    it, so the newest-un-corked rule is what picks correctly.
-  - do **not** subscribe to `SINK` events; they fire on every volume tick.
-  - Useful commands: `pactl list source-outputs` shows which source HyprWave is
-    capturing from, `pactl list sink-inputs` shows which sink each app plays
-    to, and `pactl move-sink-input <id> <sink>` tests the following logic
-    without touching hardware.
+  It now opens **one capture per playing sink-input**, restricted to that input
+  with `pa_stream_set_monitor_stream()`, and **sums their energy**. Re-scans on
+  `SINK_INPUT` / `SERVER` events.
+
+  Summing is what removes the guesswork, and it is worth understanding why
+  every simpler rule fails here:
+  - the **default sink** is wrong, as above.
+  - "the sink with the newest un-corked stream" works but is inference, and
+    "any un-corked stream" picks wrong about half the time, because
+    `speech-dispatcher-dummy` holds a permanently un-corked **silent** stream
+    on the speaker path while Firefox sat *corked* on the headphone sink and
+    spotify-player un-corked on it.
+  - summed, a silent stream contributes exactly **zero energy**, so it needs no
+    special case at all, and routing stops mattering because each stream is
+    followed individually wherever it lands.
+
+  Do **not** subscribe to `SINK` events; they fire on every volume tick.
+
+  Per-stream is also cheaper, not just tidier: the idle speech-dispatcher
+  source gets **zero** read callbacks and is skipped as stale, where a
+  sink-wide capture had it delivering silence continuously. Amplitude is
+  unaffected (`maxbin` 0.30-0.45 per-stream vs 0.22-0.44 sink-wide on the same
+  track).
+
+  **This samples PRE-DSP on the speaker path**, and that is a hard ceiling, not
+  a shortcut: the convolver's monitor ports mirror its INPUT ports (verified
+  with `pw-dump`) and its post-processing output node exposes no monitor at
+  all, so the signal that actually reaches the speakers cannot be tapped.
+
+  Useful commands: `pactl list source-outputs` shows what HyprWave is
+  capturing, `pactl list sink-inputs` shows which sink each app plays to, and
+  `pactl move-sink-input <id> <sink>` tests the following logic without
+  touching hardware.
+
+  Two measurement traps, both of which fooled me:
+  - "3 to 6 captures for 1 input" is **not** a leak — those are transient
+    counts during churn plus stale server-side streams from hyprwave processes
+    that were just killed. Compare at rest, and compare hyprwave's own count,
+    not just `pactl`.
+  - "the bars are frozen" can be a quiet passage: at `maxbin` around 0.15 the
+    integer bar heights barely change. Compare amplitude at the same point of
+    the same track.
 
 - **Do NOT "fix" the `!important` in hyprwave's stylesheet.**
   `~/.local/share/hyprwave/style.css` contains, in its `.no-transition` rule:
