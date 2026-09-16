@@ -279,7 +279,7 @@ root-owned `0644`. No udev rule is needed; don't add one.
   `album-accent`), pushed to the private repo
   `PercyThomas1127/hyprwave-album-accent` — deliberately NOT named
   `hyprwave`, so it cannot be mistaken for upstream. `origin` is that repo,
-  `upstream` is `shantanubaddar/hyprwave`. Not the upstream build. Eight commits
+  `upstream` is `shantanubaddar/hyprwave`. Not the upstream build. Nine commits
   on top of upstream: the visualizer bars take their hue from the current album
   cover; GTK is no longer called from signal context (that was the crash that
   killed the bar on 2026-09-13); all five signals now arrive through a
@@ -476,6 +476,31 @@ root-owned `0644`. No udev rule is needed; don't add one.
   capturing, `pactl list sink-inputs` shows which sink each app plays to, and
   `pactl move-sink-input <id> <sink>` tests the following logic without
   touching hardware.
+
+  **Rescans must be serialized, and must not depend on events.** Symptom: "the
+  waveform only shows while pavucontrol is open." A rescan spans two async list
+  queries — it clears `seen` at the start and acts on it at the end — so two in
+  flight clobber each other's marks and the first to finish drops sources the
+  other has not marked yet. Traced the same sink-input being dropped and
+  instantly re-added, and every churn leaked a server-side stream, because a
+  tap still in `PA_STREAM_CREATING` **cannot be disconnected**
+  (`PA_ERR_BADSTATE`, rc `-15`) and only the unref releases it.
+
+  The capture count reached **9 streams for 2 real inputs**, and
+  `VIS_MAX_SOURCES` is **8** — so once the array filled, `add_source` refused
+  to tap the music stream and the waveform went flat. pavucontrol
+  continuously generates subscription events; the rescans those forced dropped
+  the stale sources and freed a slot. Hence "only works while it is open".
+
+  Fixed by serializing scans (a request arriving mid-scan is coalesced into one
+  follow-up) **and** adding a 2s PulseAudio time event so the set is reconciled
+  without needing an event at all. Use a PA time event, not a GLib timeout: it
+  runs on the PA thread with the mainloop lock already held.
+  - **The timer alone made it worse**, by making overlap more frequent. Both
+    halves are needed; adding the watchdog without serializing pushed the
+    capture count higher, not lower.
+  - Verified 8 of 8 pause/resume cycles with nothing else open, waveform alive
+    every time and the count no longer climbing.
 
   **The bars are auto-gained, and that is load-bearing.** The waveform used to
   flicker on and off — looking like it jumped between zero and full — but only
