@@ -90,14 +90,30 @@ window#waybar.hidden {
   margin: 0;
 }
 
-/* The title half carries the pill, squared off on the left to meet the cover.
+/* The title half carries the pill, and its background is UNCONDITIONAL.
+   That is deliberate and load-bearing. It used to live only on `.has-art`,
+   which made the pill's very existence depend on whether the artwork happened
+   to be readable at that instant -- and MPRIS senders routinely emit a new
+   title with NO mpris:artUrl (MEASURED: 10 of 27 captured Metadata signals,
+   one of them a real Firefox track change). The class was dropped and the
+   whole pill vanished until an unrelated pause/play repaired it.
+
+   `has-art` now controls ONLY the corner radius below, so the worst a wrong
+   class can do is round a corner that should be square. Keep it that way: do
+   not move anything the pill needs in order to be VISIBLE onto a class that
+   depends on metadata arriving.
+
+   "Nothing playing" still contributes nothing, but that comes from
+   `hide-empty-text` in the config -- an empty-text module is hidden outright,
+   background and all -- not from this class being absent.
+
    Class-triggered opacity is what fades it: a class change IS a valid GTK
    transition trigger, so text and background fade together with no Pango
    markup, leaving `escape: true` and the marquee untouched. Keep the duration
    in step with FADE_MS in scripts/mediaplayer.py. */
 #media #custom-spotify {
-  background-color: transparent;
-  border-radius: 0;
+  background-color: #252733;
+  border-radius: 8px;
   padding: 2px 10px;
   margin: 0;
   opacity: 1;
@@ -108,8 +124,8 @@ window#waybar.hidden {
   opacity: 0;
 }
 
-/* Only with art, so that with nothing playing this half contributes nothing at
-   all -- which is what lets the SIGUSR2 reload go away.
+/* With art, square off the left edge so it butts against the cover. Geometry
+   ONLY -- the background above is unconditional, see the note there.
    Deliberately NO min-height. This half does not get to choose its height: it
    fills what the group grants it, which is the bar (96 physical px) less
    #media's 8.5px margins, and it measures y 13..82 = 70 physical = 43.75
@@ -120,7 +136,6 @@ window#waybar.hidden {
    scripts/albumart-fade. Verified with colour sentinels: image, title and
    weather all render y 13..82. */
 #media #custom-spotify.has-art {
-  background-color: #252733;
   border-radius: 0 8px 8px 0;
 }
 

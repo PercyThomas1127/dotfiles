@@ -278,7 +278,35 @@ root-owned `0644`. No udev rule is needed; don't add one.
 
   **There is no reload any more.** The PNG paints its own end of the pill, so
   `#media` has no background and a fully transparent frame is genuinely
-  invisible — retaining that frame *is* the cleared state. The image still
+  invisible — retaining that frame *is* the cleared state.
+
+  **But the zombies did not disappear, they MOVED**, and the commit that made
+  this change claimed otherwise. It said "zombies stay at 0" having measured
+  only `waybar` zombies, never the `albumart-fade` animator it had just
+  introduced — `_fade()` spawns it with `Popen` and never reaps, so they
+  accumulated as `albumart-fade <defunct>` (3 observed at once). Fixed with
+  `signal.signal(SIGCHLD, SIG_IGN)`, which makes the leak impossible rather
+  than relying on remembering to reap. **When you remove one leak, count the
+  thing you replaced it with.**
+
+  **`has-art` must never control whether the pill is VISIBLE**, only its
+  corner radius. Moving the background onto that class is what made the pill
+  vanish on every track change: MPRIS senders routinely emit a new title with
+  no `mpris:artUrl`, so the class dropped and the whole pill went with it.
+  MEASURED from a `dbus-monitor` capture: **10 of 27** `Metadata` signals
+  carried no `artUrl`, one of them a real Firefox track change, and the
+  completing update followed **51–370 ms** later (median 251 ms, n=16).
+  - `mpris:trackid` is **useless** as a track identity here: Firefox sends a
+    constant `/org/mpris/MediaPlayer2/firefox` that does not change between
+    tracks. Use `xesam:url`, falling back to `xesam:title`.
+  - An absent `artUrl` is treated as *unknown*, not *gone*: `ART_PROBE_MS`
+    (800 ms, just over 2x the worst gap observed) decides whether the track
+    genuinely has no art, so a real art-less track still settles instead of
+    pinning the previous cover.
+  - `.config/waybar/scripts/tests/` has the harness that reproduces this on
+    demand. The bug cannot be triggered by waiting for a player to misbehave,
+    and a harness that reuses one art path silently tests nothing, because
+    `_refresh_art` short-circuits when the url is unchanged. The image still
   occupies 48px when invisible, which is harmless only because `group/media`
   is alone in `modules-center`; adding another centre module would sit
   off-centre. Its width cannot be animated away: with `size: 48` waybar fits
