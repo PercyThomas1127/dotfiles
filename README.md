@@ -279,7 +279,7 @@ root-owned `0644`. No udev rule is needed; don't add one.
   `album-accent`), pushed to the private repo
   `PercyThomas1127/hyprwave-album-accent` — deliberately NOT named
   `hyprwave`, so it cannot be mistaken for upstream. `origin` is that repo,
-  `upstream` is `shantanubaddar/hyprwave`. Not the upstream build. Seven commits
+  `upstream` is `shantanubaddar/hyprwave`. Not the upstream build. Eight commits
   on top of upstream: the visualizer bars take their hue from the current album
   cover; GTK is no longer called from signal context (that was the crash that
   killed the bar on 2026-09-13); all five signals now arrive through a
@@ -476,6 +476,33 @@ root-owned `0644`. No udev rule is needed; don't add one.
   capturing, `pactl list sink-inputs` shows which sink each app plays to, and
   `pactl move-sink-input <id> <sink>` tests the following logic without
   touching hardware.
+
+  **The bars are auto-gained, and that is load-bearing.** The waveform used to
+  flicker on and off — looking like it jumped between zero and full — but only
+  sometimes, which made it look like a timing bug. It was level. The bars were
+  scaled by a hardcoded `* 10.0`, so the display depended on the ABSOLUTE
+  signal level, and any bar below `h = 1/22` was snapped to **opacity 0** by a
+  binary cliff, so it vanished outright instead of shrinking. Measured, same
+  track, varying only the stream volume:
+
+  | stream volume | frame peak | invisible bars |
+  |---|---|---|
+  | 100% | 0.774 | 0 / 55 |
+  | 60% | 0.203 | 1.4 / 55 |
+  | 30% | 0.019 | **55 / 55** |
+  | 15% | 0.001 | **55 / 55** |
+
+  It therefore "worked" whenever the audio happened to be loud. Now normalised
+  against a peak that attacks instantly and releases over ~2s, with a floor
+  that stops near-silence being amplified and a gate that lets the bars rest at
+  zero, plus a 0.6 power curve to expand the low end. After: **zero** invisible
+  bars at 100%, 50% and 20%.
+  - A bigger fixed gain is the obvious fix and is wrong — it pins every bar at
+    maximum on a loudly-mastered track. The range has to be adaptive.
+  - `AGC_FLOOR` has to sit near the quietest level worth showing, not a typical
+    one. The first attempt used `0.02` and still left 49 of 55 invisible at 30%.
+  - This also answers a question left open by the per-stream change: a
+    per-stream capture **does** include that stream's own volume.
 
   Two measurement traps, both of which fooled me:
   - "3 to 6 captures for 1 input" is **not** a leak — those are transient
