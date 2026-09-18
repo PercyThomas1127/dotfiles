@@ -457,6 +457,39 @@ root-owned `0644`. No udev rule is needed; don't add one.
     theme at `PRIORITY_USER` and anything lower loads fine and silently never
     shows. Editing `style.css` still sets the fallback colour and the
     saturation/lightness the tint reuses.
+  - **GIO/GVFS remote reads have NO TIMEOUT. Never hand a remote URI to GIO.**
+    Investigated properly on 2026-09-18 after the hyprwave freeze below, and the
+    conclusion is narrower than it first looked — `gvfsd-http` is *not* broken:
+
+    | test | result |
+    |---|---|
+    | `gio info` / `gio cat` on healthy URLs | fine, **23–39 ms**, same as curl |
+    | stalled request alongside healthy ones | healthy ones still 28–40 ms |
+    | `curl --max-time 3` on a filtered port | returns rc=28 in **3.01 s** |
+    | **`gio cat` on the same filtered port** | **no bound — still running past 20 s** |
+
+    So: the daemon is healthy and handles concurrency correctly (one stall does
+    **not** poison the mount, so no watchdog is warranted), but the backend
+    applies no effective timeout. Any network stall becomes an unbounded wait
+    for that request — and if the caller is synchronous on a UI thread, a
+    permanent freeze that outlives the network problem.
+
+    **It is not configurable.** `gvfsd-http` calls `soup_session_set_timeout`
+    with a compiled-in value; there is no gsettings schema, no `/etc/gvfs`, and
+    `http.mount` takes no options. Patching the system package would be undone
+    by the next update, so the fix belongs in the callers.
+
+    GIO claims `http`, `sftp`, `ftp`, `dav`, `davs` here, so **anything** calling
+    `g_file_new_for_uri()` on those inherits this. Audited our own code: hyprwave
+    fetches covers with `curl --max-time 5` (see below), waybar's `albumart-fade`
+    already did, and hyprwave's only other `g_file_load_contents` is on a
+    `g_file_new_for_path()` — a path, never a URI, so it uses the local VFS and
+    cannot hit the network. Keep it that way.
+
+    Earlier in that session I wrote that gvfsd-http "does not work at all",
+    on the strength of a single timed-out `gio cat`. That was wrong: the sample
+    was taken while a stalled request was outstanding. Corrected here.
+
   - **Never load remote album art synchronously.** `art.c` used to call
     `g_file_read()` on the MPRIS `mpris:artUrl`, and GIO's default VFS claims
     the `http` scheme — so an `https://` cover became a blocking D-Bus round
