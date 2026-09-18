@@ -466,13 +466,20 @@ root-owned `0644`. No udev rule is needed; don't add one.
     | `gio info` / `gio cat` on healthy URLs | fine, **23–39 ms**, same as curl |
     | stalled request alongside healthy ones | healthy ones still 28–40 ms |
     | `curl --max-time 3` on a filtered port | returns rc=28 in **3.01 s** |
-    | **`gio cat` on the same filtered port** | **no bound — still running past 20 s** |
+    | **`gio cat` on the same filtered port** | **133 s**, and only because the kernel gave up |
 
     So: the daemon is healthy and handles concurrency correctly (one stall does
     **not** poison the mount, so no watchdog is warranted), but the backend
-    applies no effective timeout. Any network stall becomes an unbounded wait
-    for that request — and if the caller is synchronous on a UI thread, a
-    permanent freeze that outlives the network problem.
+    applies **no application timeout of its own**.
+
+    That 133 s is worth reading carefully — it is the *kernel's* TCP SYN-retry
+    limit (1+2+4+…+64 ≈ 127 s), not a gvfs timeout. So a failed **connect**
+    bottoms out at ~130 s by accident, and a stall **after** connect — a TLS
+    handshake or a read that never completes — has no bound at all. That is the
+    case that bit us: hyprwave sat in one `g_file_read` for **96 minutes**,
+    which is far past any connect timeout, so it had connected and then stalled
+    mid-read. A synchronous caller on a UI thread turns that into a freeze that
+    outlives the network problem entirely.
 
     **It is not configurable.** `gvfsd-http` calls `soup_session_set_timeout`
     with a compiled-in value; there is no gsettings schema, no `/etc/gvfs`, and
