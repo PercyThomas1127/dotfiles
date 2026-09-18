@@ -370,13 +370,20 @@ window#waybar.hidden {
   margin-bottom: 7px;
 }
 
+/* Tooltips (the hover popups) track the bar rather than the old dark palette:
+   same pill fill, same generic text colour, and the border takes the bluetooth
+   accent. Alpha is matched too -- 0.93, exactly the pills -- so "the same as
+   the objects in the waybar" is true of the transparency and not just the hue.
+   Note a tooltip is its own window floating over app content, not over the bar,
+   so at 93% you see whatever is underneath faintly through it; make this opaque
+   if that reads badly over a busy window. */
 tooltip {
   font-family: Iosevka Nerd Font;
   border-radius: 15px;
   padding: 15px;
-  background-color: #1f232b;
-  border: 1px solid #5e81ac;
-  color: #e5e5e5;
+  background-color: rgba(247, 188, 188, 0.93);
+  border: 1px solid #0082FC;
+  color: #6e3a83;
 }
 
 tooltip label {
@@ -384,12 +391,15 @@ tooltip label {
   padding: 5px;
   /* A tooltip is its own GTK window, so it does not inherit the colour from
      window#waybar. Without this the text renders in the GTK theme default,
-     which on this dark background was invisible. */
-  color: #e5e5e5;
+     which used to be invisible on the old dark fill and would now be a
+     mismatched near-black on the pink one. Keep it in step with the rule
+     above -- the clock's calendar tooltip renders through this label, not the
+     tooltip element. */
+  color: #6e3a83;
 }
 
 label:focus {
-  background-color: #1f232b;
+  background-color: rgba(247, 188, 188, 0.93);
 }
 
 #tray {
