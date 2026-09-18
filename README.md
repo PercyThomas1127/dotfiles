@@ -331,9 +331,17 @@ root-owned `0644`. No udev rule is needed; don't add one.
   outgoing one is still displayed, so a slow art download cannot leave the pill
   empty. Two frame sets (`fa`/`fb`) alternate so both covers exist at once.
 
-  The pill colour and radius are read from the `--pill-color` / `--pill-radius`
-  marker comments in `style.css`, so the PNG cannot drift from the stylesheet
-  and leave a seam at the join. One 1px seam remains at the join by
+  The pill colour, radius and alpha are read from the `--pill-color` /
+  `--pill-radius` / `--pill-alpha` marker comments in `style.css`, so the PNG
+  cannot drift from the stylesheet and leave a seam at the join. The alpha one
+  was added on 2026-09-17 when the pills went translucent (93%): it is applied
+  through the MASK's intensity rather than by drawing a semi-transparent fill,
+  because the composite already takes its alpha from the mask
+  (`-alpha off -compose CopyOpacity`), so a mask painted at 93% grey gives 93%
+  alpha across the whole pill shape without needing to know where the cover
+  lands. Note the cached bases are keyed by ART URL, so any change to these
+  markers means clearing `~/.cache/waybar-albumart/base` -- otherwise old
+  covers keep the old pill baked in. One 1px seam remains at the join by
   construction — 48 logical px is 76.8 physical at this monitor's 1.6 scale, so
   it lands mid-pixel — but with both sides the same colour it blends between
   them and is invisible. A negative margin was tried and measured to have no

@@ -70,6 +70,21 @@ RAD_L=$(sed -n 's/.*--pill-radius: *\([0-9]\{1,\}\).*/\1/p' "$CSS" 2>/dev/null |
 [ -n "$RAD_L" ] || RAD_L=8
 RAD=$((RAD_L * SCALE))
 
+# Pill ALPHA, same marker mechanism. The CSS pill is translucent, so this PNG
+# must be too: the image half and the title half sit edge to edge, and a 100%
+# inset butting against a 93% background is a visible vertical seam exactly
+# where the design works hardest not to have one.
+#
+# It is applied through the MASK rather than by drawing a semi-transparent
+# fill. The composite below takes its alpha from the mask's intensity
+# (-alpha off -compose CopyOpacity), so a mask painted at 93% grey yields 93%
+# alpha everywhere inside the pill shape -- no need to know where the cover
+# lands, which is what makes this immune to the extent/rounding arithmetic.
+PILL_A=$(sed -n 's/.*--pill-alpha: *\([0-9.]\{1,\}\).*/\1/p' "$CSS" 2>/dev/null | head -1)
+case "$PILL_A" in ''|*[!0-9.]*) PILL_A=0.93 ;; esac
+# 0..255 for the mask; awk, because bc is not guaranteed present.
+MASK_LEVEL=$(awk -v a="$PILL_A" 'BEGIN { v = a * 255 + 0.5; if (v > 255) v = 255; if (v < 0) v = 0; printf "%d", v }')
+
 # Cancel any fade already in flight, by EXPLICIT pid. Never a pkill pattern --
 # a pattern match has killed this session's own shell twice.
 if [ -f "$PIDF" ]; then
@@ -111,13 +126,14 @@ build() {
 
         # Mask with only the LEFT corners rounded: round all four, then paint
         # the right-hand side back square.
-        magick -size ${W}x${H} xc:none -fill white \
+        magick -size ${W}x${H} xc:none -fill "rgb($MASK_LEVEL,$MASK_LEVEL,$MASK_LEVEL)" \
             -draw "roundrectangle 0,0 $((W - 1)),$((H - 1)) $RAD,$RAD" \
             -draw "rectangle $RAD,0 $((W - 1)),$((H - 1))" \
             "PNG32:$CACHE/.mask" 2>/dev/null || return 1
 
-        # Opaque pill-coloured inset left, square cover right, clipped to the
-        # pill shape. -gravity east anchors the cover so padding lands left.
+        # Pill-coloured inset left, square cover right, clipped to the pill
+        # shape and carrying the stylesheet's pill alpha (see MASK_LEVEL).
+        # -gravity east anchors the cover so padding lands left.
         magick "$src" -resize "${ART}x${ART}^" -gravity center -extent "${ART}x${ART}" \
             -background "$PILL" -gravity east -extent "${W}x${H}" \
             "$CACHE/.mask" -alpha off -compose CopyOpacity -composite \
