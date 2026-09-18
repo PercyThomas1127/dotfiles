@@ -457,6 +457,20 @@ root-owned `0644`. No udev rule is needed; don't add one.
     theme at `PRIORITY_USER` and anything lower loads fine and silently never
     shows. Editing `style.css` still sets the fallback colour and the
     saturation/lightness the tint reuses.
+  - **Never load remote album art synchronously.** `art.c` used to call
+    `g_file_read()` on the MPRIS `mpris:artUrl`, and GIO's default VFS claims
+    the `http` scheme — so an `https://` cover became a blocking D-Bus round
+    trip to `gvfsd-http` **on the GTK main thread**, with no timeout and a NULL
+    cancellable. It froze the bar solid for 96 minutes on 2026-09-18: alive in
+    `ppoll`, `voluntary_ctxt_switches` frozen, the 250ms keepalive never firing,
+    every signal ignored. `eu-stack -p <pid>` named it in one shot and is the
+    tool to reach for first when this app stops responding.
+
+    Compounding it, **`gvfsd-http` on this machine does not work at all**:
+    `gio cat` on a cover URL times out with 0 bytes while `curl` returns HTTP
+    200 in 0.06s. So remote art now goes through `curl -sfL --max-time 5` under
+    `GSubprocess`, asynchronously. Do not "simplify" that back to GIO.
+
   - **Launching hyprwave while it is already running does NOT no-op** — it is a
     GtkApplication, so the second launch activates the first instance, whose
     handler builds *another* bar. You get a duplicate pill stacked on the
