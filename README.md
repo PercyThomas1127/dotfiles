@@ -6,6 +6,18 @@ Based on the [Balcony](https://github.com/1amSimp1e/dots/tree/balcony%F0%9F%9A%8
 [1amSimp1e](https://github.com/1amSimp1e), ported to Apple Silicon and to Hyprland's
 new Lua config format.
 
+**The colours and icons are no longer Balcony's.** What is still inherited is the
+*structure* — the module layout, the animation set, the pill geometry, the script
+scaffolding. The palette has been replaced wholesale (Balcony's dark blue-greys and
+`#3daee9`-ish accents are gone; this is a purple-and-pink scheme), the launcher glyph
+is now an Asahi Linux logo rather than a distro glyph, and the same palette has since
+been pushed out to the rofi launcher, GTK apps, Qt apps, Konsole and VS Code so the
+whole desktop agrees. So when a comment below says "the rice" it is describing
+provenance or geometry, not the current colours.
+
+See [`color-scheme.html`](color-scheme.html) for every colour in the scheme, what
+each one is for, and where it is configured — open it in a browser.
+
 ## How this repo works
 
 This is a **bare** git repository. The tracked files live where they normally
@@ -53,6 +65,7 @@ If `checkout` complains, move the offending files aside and run it again.
 | `.config/dunst/` | notifications + the rice's icon assets |
 | `.config/rofi/`, `.config/cava/`, `.config/kitty/` | launcher, audio visualiser, terminal |
 | `.config/hyprwave/config.conf` | MPRIS music control bar |
+| `color-scheme.html` | the whole palette, labelled — self-contained, open it in a browser |
 
 ## Dependencies
 
@@ -445,7 +458,7 @@ root-owned `0644`. No udev rule is needed; don't add one.
 
     **As of 2026-09-17 that condition is met and the rule IS load-bearing.**
     `style.css` now carries local edits (the four `--bg-*` panel alphas, tuned
-    down with the rest of the rice's translucency), so a `make install` would
+    down with the rest of this desktop's translucency), so a `make install` would
     silently revert them. The repo copy at `~/Developer/hyprwave/style.css` is
     the source of truth; install it alone with
     `install -Dm644 style.css ~/.local/share/hyprwave/style.css`, and check the

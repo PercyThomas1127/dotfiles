@@ -1,4 +1,4 @@
--- Hyprland Lua config -- "Balcony" rice by 1amSimp1e, ported to this machine.
+-- Hyprland Lua config -- "Balcony" rice by 1amSimp1e, ported to this machine and recolored to match the panel. The rice is a complete Hyprland config, not just a theme.
 --   rice:    github.com/1amSimp1e/dots  (branch: balcony)
 --   machine: Fedora Asahi Remix 44, Apple Silicon MacBook Air (M1, 13")
 --
@@ -359,7 +359,8 @@ hl.window_rule({ name = "opacity-easyeffects", match = { class = "(?i)easyeffect
 -- Vesktop reports class "vesktop", not "discord", so a bare (?i)discord never
 -- matched it and the window stayed fully opaque. The (?i) is inside the group
 -- so the flag covers both alternatives rather than just the first.
--- 0.90 matches the VS Code rule below.
+-- Kept level with the VS Code rule below; both are Electron, so neither is
+-- Breeze-themed and neither takes konsole's 0.87.
 hl.window_rule({ name = "opacity-discord",  match = { class = "(?i)(discord|vesktop)" }, opacity = 0.77 })
 hl.window_rule({ name = "opacity-code",     match = { class = "^(code)$" },            opacity = 0.77 })
 hl.window_rule({ name = "opacity-obsidian", match = { class = "(?i)obsidian" },        opacity = 0.75 })
@@ -368,9 +369,7 @@ hl.window_rule({ name = "opacity-obsidian", match = { class = "(?i)obsidian" }, 
 -- org.freedesktop.*, not org.kde.*, so the family rule above misses it.
 -- Class is the KDE backend's, set in ~/.config/xdg-desktop-portal/portals.conf;
 -- the rice's float-portal-gtk rule above matches the GTK backend and so never
--- fires. Konsole looks similar but gets there differently -- Opacity=0.87 in its
--- own Amethyst.colorscheme, which blends only the background and leaves text
--- solid, whereas a Hyprland opacity rule fades the whole window.
+-- fires.
 hl.window_rule({ name = "opacity-portal",   match = { class = "^(org.freedesktop.impl.portal.desktop.kde)$" }, opacity = 0.87 })
 
 -- Smart gaps: no gaps/border/rounding when a workspace holds one tiled window.
