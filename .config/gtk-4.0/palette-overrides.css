@@ -174,3 +174,17 @@ separator.sidebar {
   border-color: #fae2aa;
   background-color: #fae2aa;
 }
+
+/* Bring the leftmost scale mark back on-screen.
+ *
+ * GTK centres a mark's label on its tick, and pavucontrol's first tick
+ * ("Silence") sits at the very start of the trough -- so at 13pt the label
+ * overhangs the widget's left edge and gets clipped. MEASURED: 86px of the word
+ * visible starting at x=0, ~14.3px per glyph in this monospace, i.e. the leading
+ * "S" (~14px) was the only part lost. 18px of left margin covers it with a
+ * little headroom. The right edge needs the same in case a trailing mark
+ * appears (pavucontrol shows one at 150% when a stream is boosted). */
+scale {
+  margin-left: 18px;
+  margin-right: 18px;
+}
