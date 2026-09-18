@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Desktop colour scheme</title></head>
+<body style="margin:0;background:#2f193d;color:#f7bcbc;
+             font-family:system-ui,-apple-system,'Noto Sans',sans-serif;
+             -webkit-font-smoothing:antialiased">
+  <div style="max-width:1180px;margin:0 auto;padding:40px 24px 60px">
+
+    <header style="border-bottom:1px solid #6e5c87;padding-bottom:22px;margin-bottom:30px">
+      <h1 style="margin:0 0 10px;font-size:29px;color:#f7bcbc;font-weight:700">Desktop colour scheme</h1>
+      <p style="margin:0 0 6px;color:#fae2aa;font-size:14.5px;max-width:82ch">
+        The palette shared by the waybar, the rofi launcher, GTK apps (pavucontrol),
+        Qt apps (Dolphin), Konsole and VS&nbsp;Code. Every value below was read out of
+        the live config file it is attributed to, not transcribed by hand.
+      </p>
+      <p style="margin:0;color:#8b7aa4;font-size:12.5px;max-width:82ch">
+        This page is itself drawn in the scheme. Each label is printed in the colour it
+        describes; because some of those are nearly black and some nearly white, every
+        label sits on whichever of two neutral panels gives it contrast, and the ratio
+        achieved is shown beside it. That is why the small panels are there rather than
+        the labels sitting straight on the page.
+      </p>
+    </header>
+
+    <section style="margin:0 0 34px">
+      <h2 style="font-size:19px;margin:0 0 4px;color:#f7bcbc;font-weight:700">The five you chose</h2>
+      <p style="margin:0 0 14px;color:#fae2aa;font-size:13.5px;max-width:78ch">Named directly; everything else is derived from these.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px">
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#2f193d;min-height:92px" title="#2f193d"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#fdf6f6;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#2f193d;font-weight:700;font-size:15px;line-height:1.35">Bar backdrop, and the window surface in every app</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #2f193d &nbsp;<span style="color:#8b7aa4">rgb(47, 25, 61)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: waybar · rofi · gtk · qt · konsole · vscode &nbsp;·&nbsp; label contrast 14.8:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#f7bcbc;min-height:92px" title="#f7bcbc"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#f7bcbc;font-weight:700;font-size:15px;line-height:1.35">Bar pills, body text, slider fills, selection</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #f7bcbc &nbsp;<span style="color:#8b7aa4">rgb(247, 188, 188)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: waybar · rofi · gtk · qt · konsole · vscode &nbsp;·&nbsp; label contrast 11.8:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#6e3a83;min-height:92px" title="#6e3a83"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#fdf6f6;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#6e3a83;font-weight:700;font-size:15px;line-height:1.35">Bar pill text; tooltips and selection elsewhere</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #6e3a83 &nbsp;<span style="color:#8b7aa4">rgb(110, 58, 131)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: waybar · gtk · qt · vscode &nbsp;·&nbsp; label contrast 7.6:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#6e5c87;min-height:92px" title="#6e5c87"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#fdf6f6;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#6e5c87;font-weight:700;font-size:15px;line-height:1.35">Header and titlebar strip, borders (larger amounts)</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #6e5c87 &nbsp;<span style="color:#8b7aa4">rgb(110, 92, 135)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: gtk · qt · vscode &nbsp;·&nbsp; label contrast 5.6:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#fae2aa;min-height:92px" title="#fae2aa"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#fae2aa;font-weight:700;font-size:15px;line-height:1.35">Outlines, dim text, titlebar text, links (small amounts)</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #fae2aa &nbsp;<span style="color:#8b7aa4">rgb(250, 226, 170)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: gtk · qt · vscode &nbsp;·&nbsp; label contrast 15.2:1
+          </div>
+        </div>
+      </div>
+      </div>
+    </section>
+    <section style="margin:0 0 34px">
+      <h2 style="font-size:19px;margin:0 0 4px;color:#f7bcbc;font-weight:700">Derived ramp</h2>
+      <p style="margin:0 0 14px;color:#fae2aa;font-size:13.5px;max-width:78ch">A dark theme needs the content area BELOW the window surface, the reverse of a light one.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px">
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#22122c;min-height:92px" title="#22122c"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#fdf6f6;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#22122c;font-weight:700;font-size:15px;line-height:1.35">Editor and file-pane background (the &#x27;view&#x27;)</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #22122c &nbsp;<span style="color:#8b7aa4">rgb(34, 18, 44)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: gtk · qt · vscode &nbsp;·&nbsp; label contrast 16.5:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#291636;min-height:92px" title="#291636"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#fdf6f6;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#291636;font-weight:700;font-size:15px;line-height:1.35">Alternate rows, current-line highlight</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #291636 &nbsp;<span style="color:#8b7aa4">rgb(41, 22, 54)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: gtk · qt · vscode &nbsp;·&nbsp; label contrast 15.6:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#443050;min-height:92px" title="#443050"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#fdf6f6;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#443050;font-weight:700;font-size:15px;line-height:1.35">Buttons, search highlight, tab borders</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #443050 &nbsp;<span style="color:#8b7aa4">rgb(68, 48, 80)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: gtk · qt · vscode &nbsp;·&nbsp; label contrast 11.0:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#544260;min-height:92px" title="#544260"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#fdf6f6;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#544260;font-weight:700;font-size:15px;line-height:1.35">Insensitive/disabled surfaces</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #544260 &nbsp;<span style="color:#8b7aa4">rgb(84, 66, 96)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: gtk · qt &nbsp;·&nbsp; label contrast 8.5:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#3d2150;min-height:92px" title="#3d2150"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#fdf6f6;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#3d2150;font-weight:700;font-size:15px;line-height:1.35">Launcher alternate rows (rofi)</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #3d2150 &nbsp;<span style="color:#8b7aa4">rgb(61, 33, 80)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: rofi &nbsp;·&nbsp; label contrast 12.9:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#8b7aa4;min-height:92px" title="#8b7aa4"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#8b7aa4;font-weight:700;font-size:15px;line-height:1.35">Line numbers, placeholders, inactive icons</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #8b7aa4 &nbsp;<span style="color:#8b7aa4">rgb(139, 122, 164)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: vscode &nbsp;·&nbsp; label contrast 5.0:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#8a7c5e;min-height:92px" title="#8a7c5e"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#8a7c5e;font-weight:700;font-size:15px;line-height:1.35">Dimmed cream, for disabled outlines</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #8a7c5e &nbsp;<span style="color:#8b7aa4">rgb(138, 124, 94)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: gtk &nbsp;·&nbsp; label contrast 4.7:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#c9a6dd;min-height:92px" title="#c9a6dd"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#c9a6dd;font-weight:700;font-size:15px;line-height:1.35">Launcher &#x27;active&#x27; entry background</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #c9a6dd &nbsp;<span style="color:#8b7aa4">rgb(201, 166, 221)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: rofi &nbsp;·&nbsp; label contrast 9.2:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#c9a8e0;min-height:92px" title="#c9a8e0"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#c9a8e0;font-weight:700;font-size:15px;line-height:1.35">Visited links</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #c9a8e0 &nbsp;<span style="color:#8b7aa4">rgb(201, 168, 224)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: gtk &nbsp;·&nbsp; label contrast 9.3:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#1a0d22;min-height:92px" title="#1a0d22"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#fdf6f6;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#1a0d22;font-weight:700;font-size:15px;line-height:1.35">Complementary/darkest surface</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #1a0d22 &nbsp;<span style="color:#8b7aa4">rgb(26, 13, 34)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: qt &nbsp;·&nbsp; label contrast 17.5:1
+          </div>
+        </div>
+      </div>
+      </div>
+    </section>
+    <section style="margin:0 0 34px">
+      <h2 style="font-size:19px;margin:0 0 4px;color:#f7bcbc;font-weight:700">Bar module accents</h2>
+      <p style="margin:0 0 14px;color:#fae2aa;font-size:13.5px;max-width:78ch">Deliberately not folded into the palette: these carry meaning at a glance.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px">
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#008c4a;min-height:92px" title="#008c4a"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#008c4a;font-weight:700;font-size:15px;line-height:1.35">CPU and RAM glyphs</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #008c4a &nbsp;<span style="color:#8b7aa4">rgb(0, 140, 74)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: waybar · konsole &nbsp;·&nbsp; label contrast 4.5:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#0082FC;min-height:92px" title="#0082FC"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#0082FC;font-weight:700;font-size:15px;line-height:1.35">Bluetooth glyph, and the tooltip border</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #0082fc &nbsp;<span style="color:#8b7aa4">rgb(0, 130, 252)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: waybar · konsole &nbsp;·&nbsp; label contrast 5.1:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#8fbcbb;min-height:92px" title="#8fbcbb"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#8fbcbb;font-weight:700;font-size:15px;line-height:1.35">Battery, normal</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #8fbcbb &nbsp;<span style="color:#8b7aa4">rgb(143, 188, 187)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: waybar &nbsp;·&nbsp; label contrast 9.3:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#ecd3a0;min-height:92px" title="#ecd3a0"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#ecd3a0;font-weight:700;font-size:15px;line-height:1.35">Battery warning; launcher &#x27;urgent&#x27;</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #ecd3a0 &nbsp;<span style="color:#8b7aa4">rgb(236, 211, 160)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: waybar · rofi &nbsp;·&nbsp; label contrast 13.2:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#fb958b;min-height:92px" title="#fb958b"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#fb958b;font-weight:700;font-size:15px;line-height:1.35">Battery critical</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #fb958b &nbsp;<span style="color:#8b7aa4">rgb(251, 149, 139)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: waybar &nbsp;·&nbsp; label contrast 9.0:1
+          </div>
+        </div>
+      </div>
+      </div>
+    </section>
+    <section style="margin:0 0 34px">
+      <h2 style="font-size:19px;margin:0 0 4px;color:#f7bcbc;font-weight:700">Semantic</h2>
+      <p style="margin:0 0 14px;color:#fae2aa;font-size:13.5px;max-width:78ch">Kept at Breeze&#x27;s hues on purpose — &#x27;error&#x27; has to stay tellable from &#x27;muted&#x27;.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px">
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#27ae60;min-height:92px" title="#27ae60"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#27ae60;font-weight:700;font-size:15px;line-height:1.35">Positive / success</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #27ae60 &nbsp;<span style="color:#8b7aa4">rgb(39, 174, 96)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: gtk · qt &nbsp;·&nbsp; label contrast 6.7:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#da4453;min-height:92px" title="#da4453"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#da4453;font-weight:700;font-size:15px;line-height:1.35">Negative / error</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #da4453 &nbsp;<span style="color:#8b7aa4">rgb(218, 68, 83)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: gtk · qt &nbsp;·&nbsp; label contrast 4.5:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#f67400;min-height:92px" title="#f67400"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#f67400;font-weight:700;font-size:15px;line-height:1.35">Neutral / warning</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #f67400 &nbsp;<span style="color:#8b7aa4">rgb(246, 116, 0)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: gtk · qt &nbsp;·&nbsp; label contrast 6.8:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#2c6b47;min-height:92px" title="#2c6b47"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#fdf6f6;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#2c6b47;font-weight:700;font-size:15px;line-height:1.35">Positive, disabled</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #2c6b47 &nbsp;<span style="color:#8b7aa4">rgb(44, 107, 71)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: gtk &nbsp;·&nbsp; label contrast 6.0:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#8a3b43;min-height:92px" title="#8a3b43"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#fdf6f6;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#8a3b43;font-weight:700;font-size:15px;line-height:1.35">Negative, disabled</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #8a3b43 &nbsp;<span style="color:#8b7aa4">rgb(138, 59, 67)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: gtk &nbsp;·&nbsp; label contrast 7.1:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#8a5220;min-height:92px" title="#8a5220"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#fdf6f6;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#8a5220;font-weight:700;font-size:15px;line-height:1.35">Neutral, disabled</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #8a5220 &nbsp;<span style="color:#8b7aa4">rgb(138, 82, 32)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: gtk &nbsp;·&nbsp; label contrast 6.0:1
+          </div>
+        </div>
+      </div>
+      </div>
+    </section>
+    <section style="margin:0 0 34px">
+      <h2 style="font-size:19px;margin:0 0 4px;color:#f7bcbc;font-weight:700">Terminal (Konsole&#x27;s ANSI 0-15)</h2>
+      <p style="margin:0 0 14px;color:#fae2aa;font-size:13.5px;max-width:78ch">Lifted verbatim into VS Code&#x27;s integrated terminal, so the two match.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px">
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#b3c2c7;min-height:92px" title="#b3c2c7"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#b3c2c7;font-weight:700;font-size:15px;line-height:1.35">ansi black / bright #e6d5e8</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #b3c2c7 &nbsp;<span style="color:#8b7aa4">rgb(179, 194, 199)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: konsole · vscode &nbsp;·&nbsp; label contrast 10.5:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#ed1515;min-height:92px" title="#ed1515"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#ed1515;font-weight:700;font-size:15px;line-height:1.35">ansi red / bright #c0392b</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #ed1515 &nbsp;<span style="color:#8b7aa4">rgb(237, 21, 21)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: konsole · vscode &nbsp;·&nbsp; label contrast 4.3:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#008c4a;min-height:92px" title="#008c4a"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#008c4a;font-weight:700;font-size:15px;line-height:1.35">ansi green / bright #1cdc9a</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #008c4a &nbsp;<span style="color:#8b7aa4">rgb(0, 140, 74)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: konsole · vscode &nbsp;·&nbsp; label contrast 4.5:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#f67400;min-height:92px" title="#f67400"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#f67400;font-weight:700;font-size:15px;line-height:1.35">ansi yellow / bright #fdbc4b</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #f67400 &nbsp;<span style="color:#8b7aa4">rgb(246, 116, 0)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: konsole · vscode &nbsp;·&nbsp; label contrast 6.8:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#1d99f3;min-height:92px" title="#1d99f3"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#1d99f3;font-weight:700;font-size:15px;line-height:1.35">ansi blue / bright #3daee9</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #1d99f3 &nbsp;<span style="color:#8b7aa4">rgb(29, 153, 243)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: konsole · vscode &nbsp;·&nbsp; label contrast 6.3:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#9b59b6;min-height:92px" title="#9b59b6"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#fdf6f6;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#9b59b6;font-weight:700;font-size:15px;line-height:1.35">ansi magenta / bright #8e44ad</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #9b59b6 &nbsp;<span style="color:#8b7aa4">rgb(155, 89, 182)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: konsole · vscode &nbsp;·&nbsp; label contrast 4.4:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#0082fc;min-height:92px" title="#0082fc"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#0082fc;font-weight:700;font-size:15px;line-height:1.35">ansi cyan / bright #7741ff</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #0082fc &nbsp;<span style="color:#8b7aa4">rgb(0, 130, 252)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: konsole · vscode &nbsp;·&nbsp; label contrast 5.1:1
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid #6e5c87;border-radius:10px;overflow:hidden;background:#22122c">
+        <div style="background:#ffffff;min-height:92px" title="#ffffff"></div>
+        <div style="padding:12px 14px">
+          <div style="background:#140a1a;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+            <span style="color:#ffffff;font-weight:700;font-size:15px;line-height:1.35">ansi white / bright #ffffff</span>
+          </div>
+          <div style="font-family:ui-monospace,'JetBrains Mono',monospace;font-size:14px;color:#fae2aa;letter-spacing:.04em">
+            #ffffff &nbsp;<span style="color:#8b7aa4">rgb(255, 255, 255)</span>
+          </div>
+          <div style="font-size:11.5px;color:#8b7aa4;margin-top:6px">
+            used in: konsole · vscode &nbsp;·&nbsp; label contrast 19.3:1
+          </div>
+        </div>
+      </div>
+      </div>
+    </section>
+    <footer style="border-top:1px solid #6e5c87;padding-top:18px;color:#8b7aa4;font-size:12px">
+      Sources: <code style="color:#fae2aa">.config/waybar/style.css</code>,
+      <code style="color:#fae2aa">.config/rofi/colors.rasi</code>,
+      <code style="color:#fae2aa">.config/gtk-3.0/palette-overrides.css</code>,
+      <code style="color:#fae2aa">.local/share/color-schemes/WaybarAmethyst.colors</code>,
+      <code style="color:#fae2aa">.local/share/konsole/Amethyst.colorscheme</code>,
+      <code style="color:#fae2aa">.config/Code/User/settings.json</code>.
+    </footer>
+  </div>
+</body></html>
