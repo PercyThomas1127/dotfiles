@@ -5,13 +5,39 @@
  * Github : @fishyfishfish55
  *
  * Colors
+ *
+ * Recoloured 2026-09-17 to match the waybar. Only these six names exist -- the
+ * whole of config.rasi funnels through them via the `* { ... var(x) }` block, so
+ * this file is the entire palette. The two hardcoded blues left in config.rasi
+ * (#89B4FA at :69 and #6f91c9 at :91) are inert: both sit on `border: 0px solid`.
+ *
+ * MAPPING, taken from what the menu actually looked like on screen:
+ *   the DARK BLUE window       #20212C -> #2f193d  the waybar bar backdrop
+ *   the LIGHT BLUE highlight   #7A95C9 -> #f7bcbc  the waybar pill
+ *   the pale blue list text    #C0CAF5 -> #f7bcbc  same pill colour
+ *
+ * `selected` is both the highlighted row's background AND the mode buttons and
+ * scrollbar handle, so pink there reproduces the bar's pink-pill look; its text
+ * comes from var(background), giving dark purple on pink exactly like the bar.
+ * Unselected rows invert that: pink text on the dark purple window.
+ *
+ * Contrast, measured: 9.70:1 both ways for normal and selected rows (the old
+ * scheme was 9.89:1 normal but only 5.30:1 selected), 8.40:1 on alternate rows.
  **/
 
 * {
-    background:     #20212CFF;
-    background-alt: #282B3CFF;
-    foreground:     #C0CAF5;
-    selected:       #7A95C9;
-    active:         #414868;
-    urgent:         #ECD3A0;
+    background:     #2f193dFF;
+    background-alt: #3d2150FF;
+    foreground:     #f7bcbcFF;
+    selected:       #f7bcbcFF;
+
+    /* `active` is used as a BACKGROUND with var(background) as its text, so it
+       has to be light, not a mid purple -- #6e3a83 here measured 1.96:1 and was
+       rejected. This lavender is clearly distinguishable from the pill pink
+       while reading at 7.52:1. */
+    active:         #c9a6ddFF;
+
+    /* Left alone: amber, not blue, so outside what was asked -- and it is the
+       urgent state, which should not blend into the rest of the palette. */
+    urgent:         #ECD3A0FF;
 }
