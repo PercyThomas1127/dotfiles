@@ -65,7 +65,7 @@ H=175
 # Pill colour and radius come from the stylesheet, so the PNG cannot drift
 # from the CSS and leave a visible seam at the join.
 PILL=$(sed -n 's/.*--pill-color: *\(#[0-9a-fA-F]\{6\}\).*/\1/p' "$CSS" 2>/dev/null | head -1)
-[ -n "$PILL" ] || PILL='#252733'
+[ -n "$PILL" ] || PILL='#f7bcbc'   # keep in step with --pill-color in style.css
 RAD_L=$(sed -n 's/.*--pill-radius: *\([0-9]\{1,\}\).*/\1/p' "$CSS" 2>/dev/null | head -1)
 [ -n "$RAD_L" ] || RAD_L=8
 RAD=$((RAD_L * SCALE))

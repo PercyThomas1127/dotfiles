@@ -5,7 +5,7 @@
 }
 
 window#waybar {
-  background-color: rgba(26, 27, 38, 0.43);
+  background-color: rgba(47, 25, 61, 0.43);
   color: #ffffff;
   transition-property: background-color;
   transition-duration: 0.5s;
@@ -42,10 +42,10 @@ window#waybar.hidden {
 #custom-weather.showyIcyDay,
 #custom-weather.snowyIcyNight,
 #custom-weather.default {
-  color: #e5e5e5;
+  color: #412354;
   border-radius: 6px;
   padding: 2px 10px;
-  background-color: #252733;
+  background-color: #f7bcbc;
   border-radius: 8px;
   font-size: 18.5px;
 
@@ -71,7 +71,7 @@ window#waybar.hidden {
    centre -- which is also why padding must stay off the group.
    scripts/albumart-fade reads these two markers so the PNG cannot drift from
    the stylesheet and leave a seam at the join:
-   --pill-color: #252733
+   --pill-color: #f7bcbc
    --pill-radius: 8 */
 #media {
   background-color: transparent;
@@ -112,7 +112,7 @@ window#waybar.hidden {
    markup, leaving `escape: true` and the marquee untouched. Keep the duration
    in step with FADE_MS in scripts/mediaplayer.py. */
 #media #custom-spotify {
-  background-color: #252733;
+  background-color: #f7bcbc;
   border-radius: 8px;
   padding: 2px 10px;
   margin: 0;
@@ -140,15 +140,15 @@ window#waybar.hidden {
 }
 
 #cpu {
-  color: #fb958b;
+  color: #412354;
 }
 
 #memory {
-  color: #a1c999;
+  color: #412354;
 }
 
 #workspaces button {
-  color: #7a95c9;
+  color: #412354;
   box-shadow: inset 0 -3px transparent;
 
   padding-right: 3px;
@@ -160,7 +160,7 @@ window#waybar.hidden {
 }
 
 #workspaces button.active {
-  color: #ecd3a0;
+  color: #412354;
   padding-left: 1px;
   padding-right: 12px;
   margin-left: 0em;
@@ -189,7 +189,7 @@ window#waybar.hidden {
 
   font-size: 22px;
 
-  color: #7a95c9;
+  color: #412354;
 
   margin-top: 8.5px;
   margin-bottom: 8.5px;
@@ -199,7 +199,7 @@ window#waybar.hidden {
 #battery,
 #pulseaudio,
 #network {
-  background-color: #252733;
+  background-color: #f7bcbc;
   padding: 0em 2em;
 
   font-size: 20px;
@@ -217,19 +217,19 @@ window#waybar.hidden {
 }
 
 #pulseaudio {
-  color: #81A1C1;
+  color: #412354;
   padding-left: 9px;
   font-size: 22px;
 }
 
 #pulseaudio.muted {
-  color: #fb958b;
+  color: #412354;
   padding-left: 9px;
   font-size: 22px;
 }
 
 #backlight {
-  color: #8a909e;
+  color: #412354;
   padding-right: 5px;
   padding-left: 8px;
   font-size: 21.2px;
@@ -237,7 +237,7 @@ window#waybar.hidden {
 
 #network {
   padding-left: 0.2em;
-  color: #5E81AC;
+  color: #412354;
   border-radius: 8px 0px 0px 8px;
   padding-left: 12px;
   padding-right: 14px;
@@ -245,11 +245,11 @@ window#waybar.hidden {
 }
 
 #network.disconnected {
-  color: #fb958b;
+  color: #412354;
 }
 
 #battery {
-  color: #8fbcbb;
+  color: #412354;
   border-radius: 0px 8px 8px 0px;
   padding-right: 2px;
   font-size: 22px;
@@ -259,7 +259,7 @@ window#waybar.hidden {
 #battery.warning,
 #battery.full,
 #battery.plugged {
-  color: #8fbcbb;
+  color: #412354;
   padding-left: 6px;
   padding-right: 12px;
   font-size: 22px;
@@ -285,15 +285,15 @@ window#waybar.hidden {
 }
 
 #battery.warning {
-  color: #ecd3a0;
+  color: #412354;
 }
 
 #battery.critical:not(.charging) {
-  color: #fb958b;
+  color: #412354;
 }
 
 #custom-lock {
-  color: #ecd3a0;
+  color: #412354;
   padding: 0 15px 0 15px;
   margin-left: 7px;
   margin-top: 7px;
@@ -301,7 +301,7 @@ window#waybar.hidden {
 }
 
 #clock {
-  color: #8a909e;
+  color: #412354;
   font-family: Iosevka Nerd Font;
   font-weight: bold;
   margin-top: 7px;
@@ -309,7 +309,7 @@ window#waybar.hidden {
 }
 
 #custom-power-menu {
-  color: #e78284;
+  color: #412354;
   margin-right: 12px;
   border-radius: 8px;
   padding: 0 6px 0 6.8px;
@@ -356,7 +356,7 @@ label:focus {
 }
 
 #idle_inhibitor {
-  background-color: #242933;
+  background-color: #f7bcbc;
 }
 
 #idle_inhibitor.activated {
@@ -365,44 +365,44 @@ label:focus {
 }
 
 #custom-spotify {
-  color: #abb2bf;
+  color: #412354;
 }
 
 #custom-weather {
   font-family: Iosevka Nerd Font;
   font-size: 19px;
-  color: #8a909e;
+  color: #412354;
 }
 
 #custom-weather.severe {
-  color: #eb937d;
+  color: #412354;
 }
 
 #custom-weather.sunnyDay {
-  color: #c2ca76;
+  color: #412354;
 }
 
 #custom-weather.clearNight {
-  color: #cad3f5;
+  color: #412354;
 }
 
 #custom-weather.cloudyFoggyDay,
 #custom-weather.cloudyFoggyNight {
-  color: #c2ddda;
+  color: #412354;
 }
 
 #custom-weather.rainyDay,
 #custom-weather.rainyNight {
-  color: #5aaca5;
+  color: #412354;
 }
 
 #custom-weather.showyIcyDay,
 #custom-weather.snowyIcyNight {
-  color: #d6e7e5;
+  color: #412354;
 }
 
 #custom-weather.default {
-  color: #dbd9d8;
+  color: #412354;
 }
 
 /* The tray is deliberately left out of the pill group above. It draws a
