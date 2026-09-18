@@ -98,7 +98,12 @@
     },   
    "custom/lock": {
        "tooltip" : false,
-       "on-click": "swaylock",
+       // swaylock is NOT INSTALLED on this box -- this was a leftover from the
+       // rice and the button silently did nothing. Everything else here locks
+       // with hyprlock: hypridle.conf uses `pidof hyprlock || hyprlock` and
+       // hyprland.lua binds SUPER+L to it. Same guard, so a second click
+       // cannot stack a second lock screen on top of the first.
+       "on-click": "pidof hyprlock || hyprlock",
        "format" : "",
     },
     // The art and the title are two widgets that must look like one pill.

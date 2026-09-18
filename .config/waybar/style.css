@@ -228,15 +228,27 @@ window#waybar.hidden {
   font-size: 20px;
 }
 
+/* padding-right overrides the 7.5px from the shared rule above, because the
+   volume glyphs are MONOSPACE IN ADVANCE BUT NOT IN INK. All three of
+   format-icons are 13.2px wide as far as layout is concerned, while their ink
+   is 13px (low), 18px (mid) and 26px (high) -- so at full volume the glyph
+   overflows its own advance box by 12.8px, entirely to the RIGHT (left
+   overflow is 0 for every state). Against 7.5px of padding that is a 5.3px
+   shortfall, and the icon had nowhere to expand into. 14px clears the widest
+   state with ~1px to spare.
+   Do not "simplify" this back to the shared padding: the bug only appears at
+   high volume, so it looks fine at the volume you are probably testing at. */
 #pulseaudio {
   color: #412354;
   padding-left: 9px;
+  padding-right: 14px;
   font-size: 22px;
 }
 
 #pulseaudio.muted {
   color: #412354;
   padding-left: 9px;
+  padding-right: 14px;   /* match #pulseaudio so muting cannot shift the bar */
   font-size: 22px;
 }
 
@@ -306,7 +318,14 @@ window#waybar.hidden {
 
 #custom-lock {
   color: #412354;
-  padding: 0 15px 0 15px;
+  /* 13/17, not 15/15. Equal padding centres the glyph's ADVANCE BOX, and this
+     glyph's ink is not centred inside its own box: U+F023 at 18.5px has an
+     11.1px advance but 15.1px of ink, sitting +2.02px right of the box centre.
+     So equal padding leaves it visibly right of centre -- MEASURED on screen
+     as a 3.75px gap asymmetry (14.4px left, 10.6px right), against the 4.04px
+     the font metrics predict. Shifting 2px of padding from right to left
+     centres the INK and keeps the pill exactly 30px wide. */
+  padding: 0 17px 0 13px;
   margin-left: 7px;
   margin-top: 7px;
   margin-bottom: 7px;
