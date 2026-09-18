@@ -152,11 +152,11 @@ window#waybar.hidden {
 }
 
 #cpu {
-  color: #412354;
+  color: #008c4a;
 }
 
 #memory {
-  color: #412354;
+  color: #008c4a;
 }
 
 #workspaces button {
@@ -201,7 +201,7 @@ window#waybar.hidden {
 
   font-size: 22px;
 
-  color: #412354;
+  color: #7a95c9;
 
   margin-top: 8.5px;
   margin-bottom: 8.5px;
