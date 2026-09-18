@@ -336,7 +336,26 @@ hl.window_rule({
 })
 
 -- Transparency. The rice targets VSCodium; this machine has VS Code (class "code").
-hl.window_rule({ name = "opacity-dolphin",  match = { class = "^(org.kde.dolphin)$" }, opacity = 0.78 })
+--
+-- BREEZE-THEMED WINDOWS all sit at konsole's 0.87. That value is NOT configured
+-- here: it lives in ~/.local/share/konsole/Amethyst.colorscheme (Opacity=0.87),
+-- selected by Lyn.profile. Hyprland's own active/inactive/fullscreen_opacity are
+-- all 1.0 and there is no konsole window rule, so konsole's translucency is
+-- entirely its own doing -- worth knowing before hunting for it in this file.
+--
+-- One family rule covers every Qt/KDE app rather than naming them one by one,
+-- so dolphin, systemsettings, kwallet and polkit prompts all match without
+-- guessing classes for apps that are not running.
+hl.window_rule({ name = "opacity-breeze-kde", match = { class = "^(org.kde..*)$" }, opacity = 0.87 })
+-- ...EXCEPT konsole, which must be cancelled back to 1.0. Its 0.87 is a
+-- BACKGROUND opacity applied inside the app; a compositor rule on top would
+-- multiply with it (0.87 x 0.87 = 0.76) and also fade the text, which konsole's
+-- own setting deliberately leaves solid. Later rules win, so this has to stay
+-- after the family rule above.
+hl.window_rule({ name = "opacity-konsole-own", match = { class = "^(org.kde.konsole)$" }, opacity = 1.0 })
+-- The GTK side of Breeze: both of these use ~/.config/gtk-3.0/palette-overrides.css.
+hl.window_rule({ name = "opacity-pavucontrol", match = { class = "^(org.pulseaudio.pavucontrol)$" }, opacity = 0.87 })
+hl.window_rule({ name = "opacity-easyeffects", match = { class = "(?i)easyeffects" }, opacity = 0.87 })
 -- Vesktop reports class "vesktop", not "discord", so a bare (?i)discord never
 -- matched it and the window stayed fully opaque. The (?i) is inside the group
 -- so the flag covers both alternatives rather than just the first.
@@ -344,14 +363,15 @@ hl.window_rule({ name = "opacity-dolphin",  match = { class = "^(org.kde.dolphin
 hl.window_rule({ name = "opacity-discord",  match = { class = "(?i)(discord|vesktop)" }, opacity = 0.77 })
 hl.window_rule({ name = "opacity-code",     match = { class = "^(code)$" },            opacity = 0.77 })
 hl.window_rule({ name = "opacity-obsidian", match = { class = "(?i)obsidian" },        opacity = 0.75 })
--- The portal file dialog (Save As / Upload File). Matches VS Code's 0.90 so it
--- sits at the same transparency as the rest of the desktop.
+-- The portal file dialog (Save As / Upload File). Breeze-themed and Qt, so it
+-- takes konsole's 0.87 with the rest of them -- but its class is
+-- org.freedesktop.*, not org.kde.*, so the family rule above misses it.
 -- Class is the KDE backend's, set in ~/.config/xdg-desktop-portal/portals.conf;
 -- the rice's float-portal-gtk rule above matches the GTK backend and so never
 -- fires. Konsole looks similar but gets there differently -- Opacity=0.87 in its
 -- own Amethyst.colorscheme, which blends only the background and leaves text
 -- solid, whereas a Hyprland opacity rule fades the whole window.
-hl.window_rule({ name = "opacity-portal",   match = { class = "^(org.freedesktop.impl.portal.desktop.kde)$" }, opacity = 0.77 })
+hl.window_rule({ name = "opacity-portal",   match = { class = "^(org.freedesktop.impl.portal.desktop.kde)$" }, opacity = 0.87 })
 
 -- Smart gaps: no gaps/border/rounding when a workspace holds one tiled window.
 hl.workspace_rule({ workspace = "w[tv1]", gaps_out = 0, gaps_in = 0 })
