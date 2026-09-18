@@ -190,21 +190,43 @@ window#waybar.hidden {
   margin-right: 0;
 }
 
-#custom-launcher {
+/* The launcher is an IMAGE module now (Asahi logo), not a text glyph, so it is
+   not covered by the shared pill selector list above and has to paint its own
+   pill. Geometry mirrors the old #custom-launcher exactly so nothing else on
+   the bar shifts.
+   Scoped positionally rather than by id: waybar-image(5) documents only
+   `#image` / `#image.empty` as selectors, so the module id does NOT become a
+   selector and a bare #image would also hit the album art. `#media #image`
+   is two ids and outranks this, so the art is safe either way -- but scoping
+   here keeps it unambiguous. Same pattern as the .modules-left/.modules-right
+   workspaces rules further down.
+   Padding is EQUAL left and right, which is only correct because the asset was
+   re-padded so the symbol sits dead centre in a square canvas; the old glyph
+   needed 11/21 because its own ink was not centred in its em box.
+
+   MEASURED result, against the Fedora glyph it replaces:
+                        ink (logical)   h-asym   v-asym   pill
+       Fedora glyph     22.50 x 22.50     1.88     0.00   44.38
+       Asahi image      21.25 x 22.50     0.00     0.00   45.00
+   Height matches exactly. Width is 1.25 narrower because the symbol is 460x482
+   -- it cannot be 22.50 square without distorting it, so the height is matched
+   and the aspect kept.
+
+   12.2px, not 11.6px: padding rounds to whole PHYSICAL pixels at this monitor's
+   1.6 scale, so the pill can only be 43.12 or 45.00 logical wide and the
+   original 44.38 is unreachable symmetrically. Asymmetric padding would hit it
+   exactly but would cost the centring, which matters more. The 0.62px
+   difference shifts the rest of the left group by 1 physical pixel. */
+.modules-left > widget:first-child > #image {
+  background-color: rgba(247, 188, 188, 0.93);
+  border-radius: 8px;
+
   margin-left: 12px;
-
-  /* The rice used 18px/14px, tuned for the Arch glyph whose visual mass sits
-     left of centre in its em box. The Fedora glyph is symmetric, so equal
-     padding centres it. Same total width (32px), so the pill is unchanged. */
-  padding-right: 21px;
-  padding-left: 11px;
-
-  font-size: 22px;
-
-  color: #7a95c9;
-
+  margin-right: 4px;
   margin-top: 8.5px;
   margin-bottom: 8.5px;
+
+  padding: 2px 12.2px;
 }
 
 #backlight,

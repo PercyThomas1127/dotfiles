@@ -1,7 +1,7 @@
 {
     "height": 40, // Waybar height (to be removed for auto height)
     "layer": "top", // Waybar at top layer
-    "modules-left": ["custom/launcher", "cpu", "memory", "hyprland/workspaces", "custom/weather"],
+    "modules-left": ["image#launcher", "cpu", "memory", "hyprland/workspaces", "custom/weather"],
     "modules-center": ["group/media"],
     "modules-right": ["tray", "bluetooth", "network", "pulseaudio",  "backlight", "battery", "custom/lock", "clock", "custom/power-menu"],
     "hyprland/workspaces": {
@@ -165,8 +165,26 @@
         "format": " ⏻ ",
         "on-click": "bash ~/.config/waybar/scripts/power-menu/powermenu.sh &",
     }, 
-    "custom/launcher": {
-        "format": "",
+    // Was custom/launcher with the Fedora glyph U+F30A. An image module now,
+    // because a custom module can only render text and there is no Asahi glyph
+    // in Nerd Fonts 3.5.1 -- checked: zero "asahi" matches in the official
+    // glyphnames.json, whose 134 font-logos entries match this font's coverage
+    // exactly.
+    //
+    // size 23 matches the glyph it replaces: the Fedora ink measured 22.50 x
+    // 22.50 logical px on screen, and the symbol is 460x482, so fitting it to
+    // 23 renders 21.95 x 23.0 -- the closest integer match available.
+    //
+    // assets/asahi.png is NOT the file as supplied. That was 497x502 with 59%
+    // transparent padding and the symbol sitting +2.5/-1.0px off the file's
+    // centre, so centring the IMAGE would have left the SYMBOL off-centre. It
+    // is cropped to the alpha bounding box then re-padded to a square canvas
+    // with the symbol centred, verified at dx=0.0 dy=0.0. Squaring also makes
+    // this immune to whether waybar fits-to-box or stretches.
+    "image#launcher": {
+        "path": "/home/yijunchen/.config/waybar/assets/asahi.png",
+        "size": 22,
         "on-click": "rofi -show drun &",
+        "tooltip": false,
     },
 }
