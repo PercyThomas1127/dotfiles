@@ -336,14 +336,14 @@ hl.window_rule({
 })
 
 -- Transparency. The rice targets VSCodium; this machine has VS Code (class "code").
-hl.window_rule({ name = "opacity-dolphin",  match = { class = "^(org.kde.dolphin)$" }, opacity = 0.92 })
+hl.window_rule({ name = "opacity-dolphin",  match = { class = "^(org.kde.dolphin)$" }, opacity = 0.78 })
 -- Vesktop reports class "vesktop", not "discord", so a bare (?i)discord never
 -- matched it and the window stayed fully opaque. The (?i) is inside the group
 -- so the flag covers both alternatives rather than just the first.
 -- 0.90 matches the VS Code rule below.
-hl.window_rule({ name = "opacity-discord",  match = { class = "(?i)(discord|vesktop)" }, opacity = 0.90 })
-hl.window_rule({ name = "opacity-code",     match = { class = "^(code)$" },            opacity = 0.90 })
-hl.window_rule({ name = "opacity-obsidian", match = { class = "(?i)obsidian" },        opacity = 0.88 })
+hl.window_rule({ name = "opacity-discord",  match = { class = "(?i)(discord|vesktop)" }, opacity = 0.77 })
+hl.window_rule({ name = "opacity-code",     match = { class = "^(code)$" },            opacity = 0.77 })
+hl.window_rule({ name = "opacity-obsidian", match = { class = "(?i)obsidian" },        opacity = 0.75 })
 -- The portal file dialog (Save As / Upload File). Matches VS Code's 0.90 so it
 -- sits at the same transparency as the rest of the desktop.
 -- Class is the KDE backend's, set in ~/.config/xdg-desktop-portal/portals.conf;
@@ -351,7 +351,7 @@ hl.window_rule({ name = "opacity-obsidian", match = { class = "(?i)obsidian" }, 
 -- fires. Konsole looks similar but gets there differently -- Opacity=0.87 in its
 -- own Amethyst.colorscheme, which blends only the background and leaves text
 -- solid, whereas a Hyprland opacity rule fades the whole window.
-hl.window_rule({ name = "opacity-portal",   match = { class = "^(org.freedesktop.impl.portal.desktop.kde)$" }, opacity = 0.90 })
+hl.window_rule({ name = "opacity-portal",   match = { class = "^(org.freedesktop.impl.portal.desktop.kde)$" }, opacity = 0.77 })
 
 -- Smart gaps: no gaps/border/rounding when a workspace holds one tiled window.
 hl.workspace_rule({ workspace = "w[tv1]", gaps_out = 0, gaps_in = 0 })

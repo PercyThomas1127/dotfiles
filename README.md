@@ -430,10 +430,18 @@ root-owned `0644`. No udev rule is needed; don't add one.
     This rule got broken on 2026-09-15 (twice), so for the record: it did no
     damage, and the reason is worth knowing. All 28 overwritten files came back
     **byte-identical** to `hyprwave-backup-20260913-222137`, because the fork
-    has never modified a data file — only `main.c`. The real risk is therefore
-    losing local edits to those files, which do not currently exist; if you ever
-    do customise `style.css` or a theme, the rule becomes load-bearing rather
-    than precautionary. Verify with
+    had never modified a data file — only `main.c`. The real risk is therefore
+    losing local edits to those files, which did not exist at the time; if you
+    ever do customise `style.css` or a theme, the rule becomes load-bearing
+    rather than precautionary.
+
+    **As of 2026-09-17 that condition is met and the rule IS load-bearing.**
+    `style.css` now carries local edits (the four `--bg-*` panel alphas, tuned
+    down with the rest of the rice's translucency), so a `make install` would
+    silently revert them. The repo copy at `~/Developer/hyprwave/style.css` is
+    the source of truth; install it alone with
+    `install -Dm644 style.css ~/.local/share/hyprwave/style.css`, and check the
+    two match with `diff -q` before assuming a restart picked anything up. Verify with
     `diff -rq ~/.local/share/hyprwave-backup-*/share-hyprwave ~/.local/share/hyprwave`.
   - **The visualizer colour is NOT in the stylesheet.** `.visualizer-bar` there
     is only the *template*: the accent is applied at runtime by a second
