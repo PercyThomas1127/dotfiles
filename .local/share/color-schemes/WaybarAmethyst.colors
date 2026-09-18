@@ -1,0 +1,229 @@
+# Waybar Amethyst -- the palette the rest of this desktop uses.
+#
+# Matches konsole (Amethyst.colorscheme: Background 47,25,61 / Foreground
+# 247,188,188) and pavucontrol (~/.config/gtk-3.0/palette-overrides.css),
+# so Qt apps, GTK apps and the terminal all agree.
+#
+#   47,25,61     #2f193d  window surface        (waybar bar backdrop)
+#   247,188,188  #f7bcbc  text, selection       (waybar pill)
+#   110,58,131   #6e3a83  tooltips              (waybar text colour)
+#   110,92,135   #6e5c87  header/titlebar strip
+#   250,226,170  #fae2aa  header text, dim text, links
+#
+# Derived dark ramp: 34,18,44 view / 41,22,54 alternate / 68,48,80 button /
+# 84,66,96 insensitive. The view sits BELOW the window, as in a dark theme.
+#
+# Remapped role-by-role from BreezeDark so every one of its 104 assignments
+# is covered -- generation asserts it, rather than leaving gaps to inherit.
+# Semantic colours keep BreezeDark's bright values: on this surface the
+# darkened variants a light theme needs would vanish.
+
+# SPDX-FileCopyrightText: Andrew Lake <jamboarder@gmail.com>
+# SPDX-FileCopyrightText: Marco Martin <notmart@gmail.com>
+# SPDX-FileCopyrightText: Nate Graham <nate@kde.org>
+# SPDX-FileCopyrightText: Noah Davis <noahadvs@gmail.com>
+# SPDX-FileCopyrightText: Neal Gompa <ngompa@kde.org>
+# SPDX-FileCopyrightText: David Redondo <kde@david-redondo.de>
+# SPDX-FileCopyrightText: Thomas Duckworth <tduck973564@gmail.com>
+# SPDX-License-Identifier: LGPL-2.0-or-later
+
+[ColorEffects:Disabled]
+Color=84,66,96
+ColorAmount=0
+ColorEffect=0
+ContrastAmount=0.65
+ContrastEffect=1
+IntensityAmount=0.1
+IntensityEffect=2
+
+[ColorEffects:Inactive]
+ChangeSelectionColor=true
+Color=84,66,96
+ColorAmount=0.025
+ColorEffect=2
+ContrastAmount=0.1
+ContrastEffect=2
+Enable=false
+IntensityAmount=0
+IntensityEffect=0
+
+[Colors:Button]
+BackgroundAlternate=84,66,96
+BackgroundNormal=68,48,80
+DecorationFocus=247,188,188
+DecorationHover=247,188,188
+ForegroundActive=247,188,188
+ForegroundInactive=250,226,170
+ForegroundLink=250,226,170
+ForegroundNegative=218,68,83
+ForegroundNeutral=246,116,0
+ForegroundNormal=247,188,188
+ForegroundPositive=39,174,96
+ForegroundVisited=201,168,224
+
+[Colors:Complementary]
+BackgroundAlternate=34,18,44
+BackgroundNormal=26,13,34
+DecorationFocus=247,188,188
+DecorationHover=247,188,188
+ForegroundActive=247,188,188
+ForegroundInactive=250,226,170
+ForegroundLink=250,226,170
+ForegroundNegative=218,68,83
+ForegroundNeutral=246,116,0
+ForegroundNormal=247,188,188
+ForegroundPositive=39,174,96
+ForegroundVisited=201,168,224
+
+[Colors:Header]
+BackgroundAlternate=47,25,61
+BackgroundNormal=110,92,135
+DecorationFocus=247,188,188
+DecorationHover=247,188,188
+ForegroundActive=247,188,188
+ForegroundInactive=250,226,170
+ForegroundLink=250,226,170
+ForegroundNegative=218,68,83
+ForegroundNeutral=246,116,0
+ForegroundNormal=250,226,170
+ForegroundPositive=39,174,96
+ForegroundVisited=201,168,224
+
+[Colors:Header][Inactive]
+BackgroundAlternate=47,25,61
+BackgroundNormal=110,92,135
+DecorationFocus=247,188,188
+DecorationHover=247,188,188
+ForegroundActive=247,188,188
+ForegroundInactive=250,226,170
+ForegroundLink=250,226,170
+ForegroundNegative=218,68,83
+ForegroundNeutral=246,116,0
+ForegroundNormal=250,226,170
+ForegroundPositive=39,174,96
+ForegroundVisited=201,168,224
+
+[Colors:Selection]
+BackgroundAlternate=110,58,131
+BackgroundNormal=247,188,188
+DecorationFocus=247,188,188
+DecorationHover=247,188,188
+ForegroundActive=247,188,188
+ForegroundInactive=250,226,170
+ForegroundLink=250,226,170
+ForegroundNegative=218,68,83
+ForegroundNeutral=246,116,0
+ForegroundNormal=47,25,61
+ForegroundPositive=39,174,96
+ForegroundVisited=201,168,224
+
+[Colors:Tooltip]
+BackgroundAlternate=110,92,135
+BackgroundNormal=110,58,131
+DecorationFocus=247,188,188
+DecorationHover=247,188,188
+ForegroundActive=247,188,188
+ForegroundInactive=250,226,170
+ForegroundLink=250,226,170
+ForegroundNegative=218,68,83
+ForegroundNeutral=246,116,0
+ForegroundNormal=247,188,188
+ForegroundPositive=39,174,96
+ForegroundVisited=201,168,224
+
+[Colors:View]
+BackgroundAlternate=41,22,54
+BackgroundNormal=34,18,44
+DecorationFocus=247,188,188
+DecorationHover=247,188,188
+ForegroundActive=247,188,188
+ForegroundInactive=250,226,170
+ForegroundLink=250,226,170
+ForegroundNegative=218,68,83
+ForegroundNeutral=246,116,0
+ForegroundNormal=247,188,188
+ForegroundPositive=39,174,96
+ForegroundVisited=201,168,224
+
+[Colors:Window]
+BackgroundAlternate=41,22,54
+BackgroundNormal=47,25,61
+DecorationFocus=247,188,188
+DecorationHover=247,188,188
+ForegroundActive=247,188,188
+ForegroundInactive=250,226,170
+ForegroundLink=250,226,170
+ForegroundNegative=218,68,83
+ForegroundNeutral=246,116,0
+ForegroundNormal=247,188,188
+ForegroundPositive=39,174,96
+ForegroundVisited=201,168,224
+
+[General]
+ColorScheme=WaybarAmethyst
+Name=Waybar Amethyst
+Name[ar]=نسيم داكن
+Name[az]=Breeze - Tünd
+Name[bg]=Breeze Тъмен
+Name[bs]=Breeze tamna
+Name[ca]=Brisa fosca
+Name[ca@valencia]=Brisa fosca
+Name[cs]=Breeze Tmavé
+Name[da]=Breeze Dark
+Name[de]=Breeze Dunkel
+Name[el]=Breeze σκούρο
+Name[en_GB]=Breeze Dark
+Name[eo]=Breeze Dark
+Name[es]=Brisa oscuro
+Name[et]=Breeze tume
+Name[eu]=Breeze iluna
+Name[fi]=Tumma Breeze
+Name[fr]=Brise sombre
+Name[gl]=Brisa escura
+Name[he]=בריזה כהה
+Name[hi]=ब्रीज़ गहरा
+Name[hu]=Breeze Dark
+Name[ia]=Brisa obscure
+Name[id]=Breeze Gelap
+Name[is]=Breeze dökkt
+Name[it]=Brezza scuro
+Name[ja]=Breeze ダーク
+Name[ka]=Breeze მუქი
+Name[ko]=어두운 Breeze
+Name[lt]=Breeze tamsus
+Name[lv]=„Breeze“ tumšais
+Name[nb]=Breeze mørk
+Name[nl]=Breeze Dark
+Name[nn]=Breeze mørk
+Name[pa]=ਬਰੀਜ਼ ਗੂੜ੍ਹਾ
+Name[pl]=Ciemna Bryza
+Name[pt]=Brisa Escuro
+Name[pt_BR]=Breeze Dark
+Name[ro]=Briză, întunecat
+Name[ru]=Breeze, тёмный вариант
+Name[sa]=वायुः अन्धकारः
+Name[sk]=Tmavý vánok
+Name[sl]=Sapica, temna
+Name[sr]=Поветарац тамни
+Name[sr@ijekavian]=Поветарац тамни
+Name[sr@ijekavianlatin]=Povetarac tamni
+Name[sr@latin]=Povetarac tamni
+Name[sv]=Breeze mörk
+Name[ta]=கரும் பிரீஸ்
+Name[tg]=Насими торик
+Name[tr]=Esinti Koyu
+Name[uk]=Темна Breeze
+Name[zh_CN]=Breeze 微风深色
+Name[zh_TW]=Breeze Dark
+shadeSortColumn=true
+
+[KDE]
+contrast=4
+
+[WM]
+activeBackground=110,92,135
+activeBlend=250,226,170
+activeForeground=250,226,170
+inactiveBackground=47,25,61
+inactiveBlend=138,124,94
+inactiveForeground=138,124,94
