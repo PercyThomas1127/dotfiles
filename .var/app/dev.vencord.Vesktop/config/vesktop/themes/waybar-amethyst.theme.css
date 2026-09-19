@@ -1,0 +1,148 @@
+/**
+ * @name Waybar Amethyst
+ * @description The palette used by the rest of this desktop -- waybar, rofi, GTK
+ *              apps, Qt apps, Konsole and VS Code. Dark purple surfaces, pink text.
+ * @author yijunchen
+ * @version 1.0.0
+ */
+
+/*
+ * Palette, identical to ~/color-scheme.html:
+ *   #2f193d  chat area          the waybar bar backdrop
+ *   #22122c  channel sidebar    the "view" surface
+ *   #1a0d22  server rail        darkest
+ *   #291636  alternate/hover
+ *   #443050  raised controls
+ *   #f7bcbc  body text, accent  the waybar pill
+ *   #6e3a83  tooltips
+ *   #6e5c87  borders
+ *   #fae2aa  links, headings, muted-but-readable
+ *
+ * Discord has changed its variable names over the years and Vencord tracks
+ * whichever build you are on, so BOTH sets are defined below: the long-standing
+ * --background-* / --text-* names and the newer --bg-* surface tokens. Setting
+ * only one leaves half the client on Discord's own dark theme.
+ */
+
+:root,
+.theme-dark,
+.theme-light {
+  /* ---- surfaces, legacy names ---- */
+  --background-primary:            #2f193d;
+  --background-secondary:          #22122c;
+  --background-secondary-alt:      #291636;
+  --background-tertiary:           #1a0d22;
+  --background-accent:             #f7bcbc;
+  --background-floating:           #22122c;
+  --background-nested-floating:    #291636;
+  --background-mobile-primary:     #2f193d;
+  --background-mobile-secondary:   #22122c;
+  --background-modifier-hover:     #ffffff0d;
+  --background-modifier-active:    #ffffff14;
+  --background-modifier-selected:  #ffffff1a;
+  --background-modifier-accent:    #6e5c8759;
+  --channeltextarea-background:    #22122c;
+  --activity-card-background:      #22122c;
+  --deprecated-card-bg:            #22122c;
+  --deprecated-store-bg:           #22122c;
+  --modal-background:              #22122c;
+  --modal-footer-background:       #1a0d22;
+  --input-background:              #22122c;
+  --search-popout-option-fade:     none;
+
+  /* ---- surfaces, newer token set ---- */
+  --bg-base-primary:               #2f193d;
+  --bg-base-secondary:             #22122c;
+  --bg-base-tertiary:              #1a0d22;
+  --bg-surface-raised:             #291636;
+  --bg-surface-overlay:            #22122c;
+  --bg-surface-overlay-tmp:        #22122c;
+  --bg-mod-subtle:                 #ffffff0d;
+  --bg-mod-faint:                  #ffffff14;
+  --bg-mod-strong:                 #ffffff1a;
+  --bg-mod-max:                    #ffffff26;
+
+  /* ---- text ---- */
+  --text-normal:                   #f7bcbc;
+  --text-default:                  #f7bcbc;
+  --text-primary:                  #f7bcbc;
+  --text-secondary:                #fae2aa;
+  --text-muted:                    #8b7aa4;
+  --text-feedback-muted:           #8b7aa4;
+  --text-link:                     #fae2aa;
+  --text-link-low-saturation:      #fae2aa;
+  --text-brand:                    #f7bcbc;
+  --header-primary:                #f7bcbc;
+  --header-secondary:              #fae2aa;
+  --channels-default:              #c9a6dd;
+  --channel-icon:                  #8b7aa4;
+  --interactive-normal:            #f7bcbc;
+  --interactive-hover:             #fae2aa;
+  --interactive-active:            #fae2aa;
+  --interactive-muted:             #6e5c87;
+  --white-500:                     #f7bcbc;
+
+  /* ---- accent. Discord's blurple is the single most recognisable thing about
+     its UI, so it is replaced everywhere rather than left to peek through. The
+     pink is light, so anything sitting ON it takes the dark purple instead of
+     Discord's white -- same inversion the waybar pills use. ---- */
+  --brand-experiment:              #f7bcbc;
+  --brand-500:                     #f7bcbc;
+  --brand-560:                     #f0a8a8;
+  --brand-600:                     #e99999;
+  --brand-experiment-100:          #fbe1e1;
+  --brand-experiment-160:          #f9d0d0;
+  --brand-experiment-200:          #f9d0d0;
+  --brand-experiment-300:          #f7bcbc;
+  --brand-experiment-400:          #f7bcbc;
+  --brand-experiment-500:          #f7bcbc;
+  --brand-experiment-600:          #e99999;
+  --brand-experiment-700:          #d98787;
+  --button-filled-brand-background:        #f7bcbc;
+  --button-filled-brand-background-hover:  #fbe1e1;
+  --button-filled-brand-text:              #2f193d;
+  --mention-foreground:            #2f193d;
+  --mention-background:            #f7bcbc59;
+
+  /* ---- borders, scrollbars, dividers ---- */
+  --border-subtle:                 #6e5c8759;
+  --border-strong:                 #6e5c87;
+  --border-faint:                  #6e5c8733;
+  --scrollbar-thin-thumb:          #6e5c87;
+  --scrollbar-thin-track:          transparent;
+  --scrollbar-auto-thumb:          #6e5c87;
+  --scrollbar-auto-track:          #22122c;
+  --scrollbar-auto-scrollbar-color-thumb: #6e5c87;
+  --scrollbar-auto-scrollbar-color-track: #22122c;
+
+  /* ---- semantic. Kept at their own hues: "error" has to stay tellable from
+     "muted", which matters more than palette purity. ---- */
+  --text-positive:                 #27ae60;
+  --text-warning:                  #f67400;
+  --text-danger:                   #da4453;
+  --status-positive:               #27ae60;
+  --status-warning:                #f67400;
+  --status-danger:                 #da4453;
+  --info-positive-foreground:      #27ae60;
+  --info-warning-foreground:       #f67400;
+  --info-danger-foreground:        #da4453;
+}
+
+/* Tooltips take the tooltip purple, as they do in waybar and the Qt scheme. */
+[class*="tooltip_"] {
+  background-color: #6e3a83 !important;
+  color: #f7bcbc !important;
+  border: 1px solid #6e5c87 !important;
+}
+[class*="tooltipPointer_"] { border-top-color: #6e3a83 !important; }
+
+/* The server rail and its selected-pill indicator. */
+[class*="guilds_"]      { background-color: #1a0d22 !important; }
+[class*="listItem_"] [class*="pill"] span { background-color: #f7bcbc !important; }
+
+/* Code blocks: line them up with the terminal palette rather than Discord's. */
+code, pre, [class*="markup_"] code {
+  background-color: #22122c !important;
+  border-color: #6e5c87 !important;
+  color: #fae2aa !important;
+}
