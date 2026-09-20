@@ -1,0 +1,24 @@
+# Waybar Amethyst Global Theme.
+#
+# This package exists for one reason: kded6 loads the
+# `lookandfeelautoswitcher` module, which reads [KDE]AutomaticLookAndFeel and
+# re-applies a whole Global Theme package at the day/night boundary (it waits
+# for the session to go idle, so it lands at an arbitrary-looking moment).
+# Applying a Global Theme rewrites every [Colors:*] group in kdeglobals
+# wholesale, which is what kept silently reverting the rice to BreezeDark.
+#
+# Pointing both DefaultLightLookAndFeel and DefaultDarkLookAndFeel at this
+# package means the switcher still runs, but every switch lands back on
+# WaybarAmethyst instead of clobbering it.
+#
+# Deliberately minimal: keys that are absent here are NOT touched when the
+# theme is applied. In particular we do not set [Icons]Theme (the session has
+# no [Icons] section and Dolphin renders correctly as-is), no wallpaper
+# (mpvpaper owns the background), and no kwinrc decoration (Hyprland is the
+# compositor, not KWin).
+
+[kdeglobals][KDE]
+widgetStyle=Breeze
+
+[kdeglobals][General]
+ColorScheme=WaybarAmethyst

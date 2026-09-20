@@ -140,6 +140,9 @@ LastUsedCustomAccentColor=233,58,154
 
 [KDE]
 AutomaticLookAndFeel=true
+DefaultDarkLookAndFeel=org.waybaramethyst.desktop
+DefaultLightLookAndFeel=org.waybaramethyst.desktop
+LookAndFeelPackage=org.waybaramethyst.desktop
 contrast=4
 frameContrast=0.2
 

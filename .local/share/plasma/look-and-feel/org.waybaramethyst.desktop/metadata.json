@@ -1,0 +1,13 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Category": "",
+        "Description": "Waybar Amethyst: dark purple surfaces, pastel pink text. Matches the Hyprland rice.",
+        "Id": "org.waybaramethyst.desktop",
+        "License": "GPL-2.0-or-later",
+        "Name": "Waybar Amethyst",
+        "Version": "1.0.0",
+        "Website": ""
+    },
+    "X-Plasma-APIVersion": "2"
+}
