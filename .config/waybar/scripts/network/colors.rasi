@@ -1,8 +1,34 @@
+/**
+ * Colours for the Wi-Fi menu (rofi, launched by rofi-network-manager.sh from
+ * the waybar network button).
+ *
+ * This is a SEPARATE palette from ~/.config/rofi/colors.rasi -- the script
+ * imports its own file from this directory, which is why recolouring the main
+ * rofi theme left this menu on the old scheme.
+ *
+ * Same six names, same mapping as the launcher:
+ *   old #15161E window / #1A1B26 alt / #C0CAF5 text / #5e6ba3 selected
+ *
+ * `active` and `urgent` are used as BACKGROUNDS with var(background) as their
+ * text (see the * block in rofi-network-manager.rasi), so both have to stay
+ * light enough for dark purple text -- which is why active is a lavender and
+ * not the mid purple #6e3a83.
+ *
+ * Contrast, measured on the pairs the theme actually renders:
+ *   text on window            9.70:1      text on alternate row   8.40:1
+ *   selected (dark on pink)   9.70:1      active (dark on lav)    7.52:1
+ *   urgent (dark on amber)   10.84:1
+ * The selected row was 3.52:1 before.
+ **/
+
 * {
-    background:     #15161E;
-    background-alt: #1A1B26;
-    foreground:     #C0CAF5;
-    selected:       #5e6ba3;
-    active:         #ECD3A0;
-    urgent:         #ECD3A0;
+    background:     #2f193dFF;
+    background-alt: #3d2150FF;
+    foreground:     #f7bcbcFF;
+    selected:       #f7bcbcFF;
+    active:         #c9a6ddFF;
+
+    /* Amber, left alone deliberately: urgent is a state, and folding it into
+       the palette would stop it standing out. Same call as the launcher. */
+    urgent:         #ECD3A0FF;
 }
