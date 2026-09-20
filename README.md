@@ -854,6 +854,70 @@ root-owned `0644`. No udev rule is needed; don't add one.
   longer acts as Super. Left Cmd still drives every `SUPER` bind.
 - `hyprlock.conf` and `hyprpaper.conf` hardcode `/home/yijunchen`. Fix those
   before sharing this publicly.
+- **`hyprctl dispatch` needs Lua syntax here.** The config is
+  `hyprland.lua`, and `hyprctl dispatch` evaluates its argument as
+  `return hl.dispatch(<arg>)`. The usual form is therefore a Lua syntax error:
+
+  ```
+  $ hyprctl dispatch movecursor 5 5
+  error: [string "return hl.dispatch(movecursor 5 5)"]:1: ')' expected near '5'
+  ```
+
+  Pass a dispatcher expression instead, the same `hl.dsp.*` API the keybinds
+  use — `hyprctl dispatch 'hl.dsp.focus({ workspace = 3 })'`. Note
+  `hl.dispatch("workspace", "1")` does *not* work; it wants a dispatcher
+  object, not a string pair, and `hl.dsp.workspace` is a table rather than a
+  function. This matters most in screenshot helpers, which habitually write
+  `hyprctl dispatch ... >/dev/null` and so swallow the error: the cursor is
+  never moved out of frame, the workspace never changes, and `grim` then
+  produces a perfectly sharp picture of the wrong window.
+
+- **The Qt colour scheme gets overwritten by a kded module, not by anything in
+  this repo.** `kded6` loads `lookandfeelautoswitcher`
+  (`qdbus6 org.kde.kded6 /kded loadedModules` lists it). It reads
+  `[KDE]AutomaticLookAndFeel` together with `DefaultLightLookAndFeel` /
+  `DefaultDarkLookAndFeel`, and re-applies an entire Global Theme package at
+  the day/night boundary — waiting for the session to go idle first, so it
+  lands at an arbitrary-looking moment with nothing in the journal (the
+  module's only log line is a disabled `qCDebug`). Applying a Global Theme
+  rewrites every `[Colors:*]` group in `kdeglobals` wholesale and drops
+  `ColorScheme=`, which is what kept reverting Dolphin and friends to Breeze
+  Dark's grey 32,35,38 and blue 61,174,233.
+
+  Both `Default*LookAndFeel` keys now point at
+  `~/.local/share/plasma/look-and-feel/org.waybaramethyst.desktop`, a minimal
+  package that selects `ColorScheme=WaybarAmethyst`. The switcher still runs;
+  it just lands back on the rice either way. Keys the package omits are not
+  touched on apply, which is deliberate: no `[Icons]`, no wallpaper (mpvpaper
+  owns that), no `kwinrc` decoration (Hyprland is the compositor).
+
+  Two things to know if you touch this. `plasma-apply-lookandfeel` writes the
+  colour values but *not* the `ColorScheme=` identity key, and it clears
+  `AutomaticLookAndFeel`; both are restored in `kdeglobals` so the KCM still
+  shows the right scheme. And `plasma-apply-colorscheme` no-ops when it thinks
+  the scheme is already current, so check the actual `[Colors:Window]` values
+  rather than trusting its success message.
+
+- **Don't put a bare `*` font rule in `gtk-3.0/palette-overrides.css`.**
+  `gtk.css` imports that file, so `*` reaches every widget in every GTK app on
+  the box. The monospace 13pt pavucontrol was given this way turned out to be
+  about **1.6x wider** than the `Noto Sans 10` it replaced (measured with
+  Pango: "Electrical Rules Checker" 144px -> 240px), which was enough to clip
+  labels in KiCad down to "Pin n...", "Posit... 7850 mil" and "Rule A".
+  It is now scoped to `#mainWindow`, which works because GtkBuilder ids become
+  CSS widget names in GTK3 and pavucontrol's `mainwindow.ui` — embedded in a
+  gresource, readable with `gresource extract /usr/bin/pavucontrol
+  /org/pulseaudio/pavucontrol/ui/mainwindow.ui` — declares
+  `<object class="GtkWindow" id="mainWindow">`. That id is generic, so treat
+  collisions as possible; the worst case is another app in the wrong font.
+
+  To check a CSS change without restarting anything, load the real chain into
+  a `Gtk.CssProvider` at `PRIORITY_USER` and read the resolved font off a
+  label's style context. Always A/B it against the previous file — a probe
+  that reports the answer you wanted under both is a broken probe.
+
+  Running GTK apps do not pick up the change; wx/GTK caches fonts at startup,
+  so KiCad must be restarted.
 
 ## Credits
 
