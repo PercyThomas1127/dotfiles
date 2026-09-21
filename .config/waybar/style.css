@@ -295,7 +295,7 @@ window#waybar.hidden {
 }
 
 #battery {
-  color: #8fbcbb;
+  color: #42f598;
   border-radius: 0px 8px 8px 0px;
   padding-right: 2px;
   font-size: 22px;
@@ -305,7 +305,7 @@ window#waybar.hidden {
 #battery.warning,
 #battery.full,
 #battery.plugged {
-  color: #8fbcbb;
+  color: #56fc03;
   padding-left: 6px;
   padding-right: 12px;
   font-size: 22px;
@@ -331,11 +331,11 @@ window#waybar.hidden {
 }
 
 #battery.warning {
-  color: #ecd3a0;
+  color: #f8fc03;
 }
 
 #battery.critical:not(.charging) {
-  color: #fb958b;
+  color: #bf4747;
 }
 
 #custom-lock {
