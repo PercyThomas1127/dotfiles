@@ -1,5 +1,5 @@
 {
-    "workbench.colorTheme": "Default Dark Modern",
+    "workbench.colorTheme": "Dark Modern",
     "claudeCode.hideOnboarding": true,
     "workbench.colorCustomizations": {
         "foreground": "#f7bcbc",
@@ -125,5 +125,6 @@
         "terminal.ansiBrightCyan": "#7741ff",
         "terminal.ansiWhite": "#ffffff",
         "terminal.ansiBrightWhite": "#ffffff"
-    }
+    },
+    "claudeCode.preferredLocation": "panel"
 }

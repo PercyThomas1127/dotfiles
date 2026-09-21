@@ -177,6 +177,11 @@ hl.config({
     decoration = {
         rounding = 19,
 
+        -- Software night-light. apple-drm exposes CTM but no GAMMA_LUT, so
+        -- wlr-gamma-control (gammastep/hyprsunset/wlsunset) cannot work at all
+        -- on this panel. Tint at composite time instead. Added 2026-09-18.
+        -- screen_shader = "/home/yijunchen/.config/hypr/shaders/nightlight.frag",  -- disabled 2026-09-18; uncomment to re-enable
+
         -- PERFORMANCE WARNING (this machine specifically):
         -- These are the rice's values. size 13 x 3 passes is very heavy blur.
         -- The Asahi Mesa driver on this M1 already showed it struggles with
