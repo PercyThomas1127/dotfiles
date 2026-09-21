@@ -7,6 +7,7 @@
 *.pre-*
 *.old
 *.conf.old
+.claude/
 hyprland-backup-*.conf
 rice-backup-*/
 
