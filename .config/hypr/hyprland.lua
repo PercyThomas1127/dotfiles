@@ -183,15 +183,21 @@ hl.config({
         -- screen_shader = "/home/yijunchen/.config/hypr/shaders/nightlight.frag",  -- disabled 2026-09-18; uncomment to re-enable
 
         -- PERFORMANCE WARNING (this machine specifically):
-        -- These are the rice's values. size 13 x 3 passes is very heavy blur.
-        -- The Asahi Mesa driver on this M1 already showed it struggles with
-        -- multi-pass blur -- a blurred multi-layer wallpaper scene ran at ~2 FPS
-        -- against ~62 FPS unblurred. If the desktop feels sluggish, swap in
-        -- the commented values below; they keep the look and cost far less.
+        -- The rice shipped size 13 x 3 passes, which is very heavy blur; this
+        -- is now on 2 passes (see below). The Asahi Mesa driver on this M1
+        -- already showed it struggles with multi-pass blur -- a blurred
+        -- multi-layer wallpaper scene ran at ~2 FPS against ~62 FPS unblurred.
+        -- If the desktop still feels sluggish, swap in the commented values
+        -- below; they keep the look and cost far less.
         blur = {
             enabled           = true,
             size              = 13,
-            passes            = 3,
+            -- 3 -> 2 on 2026-09-22. Fewer blur passes means fewer intermediate
+            -- GPU buffers per frame, so fewer chances to hit the uninitialized
+            -- compressed-texture bug behind the magenta flashes, and it offsets
+            -- the bandwidth cost of ASAHI_MESA_DEBUG=nocompress. Also finally
+            -- acts on the performance warning below.
+            passes            = 2,
             new_optimizations = true,
             -- size   = 4,
             -- passes = 2,
