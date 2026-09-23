@@ -1,0 +1,59 @@
+#!/bin/sh
+# Region screenshot, then ask what to do with it.
+#
+# Replaces the old bind, which wrote straight into ~/Pictures/Screenshots with
+# no clipboard copy and no chance to change your mind. Every path here also
+# puts the image on the clipboard, since that is nearly always wanted and
+# costs nothing.
+#
+# rofi is invoked bare so it picks up ~/.config/rofi/config.rasi, which imports
+# the themed colors.rasi -- the menu matches the waybar palette for free.
+#
+# Not spectacle: it needs KWin's org.kde.KWin.ScreenShot2 D-Bus interface,
+# which does not exist under Hyprland. `spectacle -b -r -o FILE` exits 1
+# silently and writes nothing. grim is what works here.
+
+set -eu
+
+SHOTDIR="$HOME/Pictures/Screenshots"
+TMP=$(mktemp -t screenshot-XXXXXX.png)
+trap 'rm -f "$TMP"' EXIT INT TERM
+
+# slurp exits non-zero when you press Escape. That is a cancel, not a failure.
+geom=$(slurp) || exit 0
+grim -g "$geom" "$TMP" || { notify-send "Screenshot" "Capture failed"; exit 1; }
+
+choice=$(printf '%s\n' \
+    "Copy to clipboard" \
+    "Save as..." \
+    "Save to Screenshots" \
+    "Discard" \
+  | rofi -dmenu -i -p "Screenshot" -no-custom -lines 4) || exit 0
+
+copy() { wl-copy --type image/png < "$TMP"; }
+
+case "$choice" in
+  "Copy to clipboard")
+      copy
+      notify-send "Screenshot" "Copied to clipboard"
+      ;;
+  "Save as...")
+      # kdialog is a plain Qt file dialog; unlike spectacle it needs no KWin.
+      dest=$(kdialog --getsavefilename \
+               "$SHOTDIR/$(date +%Y-%m-%d_%H-%M-%S).png" \
+               "image/png" 2>/dev/null) || exit 0
+      [ -n "$dest" ] || exit 0
+      mkdir -p "$(dirname "$dest")"
+      cp "$TMP" "$dest"
+      copy
+      notify-send "Screenshot" "Saved to $dest"
+      ;;
+  "Save to Screenshots")
+      mkdir -p "$SHOTDIR"
+      dest="$SHOTDIR/$(date +%Y-%m-%d_%H-%M-%S).png"
+      cp "$TMP" "$dest"
+      copy
+      notify-send "Screenshot" "Saved to $dest"
+      ;;
+  *)  exit 0 ;;
+esac

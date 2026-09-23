@@ -495,10 +495,16 @@ hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = tr
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
 
 ---- Screenshots ----
--- The original used "hyprshot", which is not installed. grim + slurp are.
--- (spectacle is also installed if you prefer a GUI.)
-hl.bind("SUPER + CONTROL + 4", hl.dsp.exec_cmd(
-    [[mkdir -p ~/Pictures/Screenshots && grim -g "$(slurp)" ~/Pictures/Screenshots/"$(date +%Y-%m-%d_%H-%M-%S)".png && notify-send "Screenshot" "Saved to ~/Pictures/Screenshots"]]))
+-- Select a region, then pick: copy to clipboard, "Save as..." via a real file
+-- dialog, or drop it in ~/Pictures/Screenshots. Every path also copies to the
+-- clipboard. The old bind wrote the file immediately with no clipboard copy
+-- and no way to change your mind.
+--
+-- The original rice used "hyprshot"; scripts/screenshots.sh used "grimblast".
+-- Neither is installed. grim + slurp are, and spectacle cannot work here at
+-- all -- it needs KWin's org.kde.KWin.ScreenShot2 interface, so under Hyprland
+-- `spectacle -b -r -o FILE` exits 1 silently and writes nothing.
+hl.bind("SUPER + CONTROL + 4", hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot-menu"))
 
 ---- Lid switch ----
 -- Turn the internal panel off when the lid closes, back on when it opens.
