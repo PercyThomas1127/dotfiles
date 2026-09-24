@@ -138,6 +138,17 @@
     },
     "custom/spotify": {
         "exec": "python3 ~/.config/waybar/scripts/mediaplayer.py",
+        // Respawn the driver if it exits. Without this the module had NO
+        // restart policy -- the restart-interval further up belongs to
+        // custom/weather -- so when mediaplayer.py died on 2026-09-23 the
+        // album-art pill simply vanished for good. It looks like the pill
+        // "broke", but scripts/albumart prints nothing when it has no frame,
+        // and waybar's image module never releases its pixbuf, so the bar kept
+        // displaying the last fade-out frame, which is fully transparent.
+        // Only valid on a continuous script and mutually exclusive with
+        // "interval", which this module does not set. 5s is short enough that
+        // a death is barely visible.
+        "restart-interval": 5,
         "format": "{}",
         "return-type": "json",
         // Cap the rendered label so a long title can never push the side groups

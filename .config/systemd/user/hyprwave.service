@@ -48,7 +48,11 @@ ExecStopPost=%h/.config/hypr/scripts/hyprwave-launch log-failure
 # parser errors). The two channels are cleanly split, so keep stderr and drop
 # stdout: that is also what makes "log failures, not normal output" true of the
 # journal and not just of the file.
-StandardOutput=null
+# Was null. That discarded every g_print diagnostic -- player selection,
+# "New player detected", "Player disappeared" -- which is why the 2026-09-23
+# empty-bar incident left no trail at all. The only reason it had to be null
+# was one unguarded per-frame TICK print, now behind HYPRWAVE_DEBUG_MORPH.
+StandardOutput=journal
 StandardError=journal
 
 # always, not on-failure: the single-instance remote path exits 0, and a bar
