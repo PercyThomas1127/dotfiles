@@ -32,7 +32,7 @@ export PATH=~/.npm-global/bin:$PATH
 # Bare dotfiles repo (github.com/PercyThomas1127/dotfiles).
 # Files stay where they live; use `config` instead of `git`.
 alias config='git --git-dir=$HOME/.dotfiles --work-tree=$HOME'
-alias sdi='sudo dnf install'
+alias sdi='sudo emerge --ask'
 alias v='vim'
 
 # Interactive-only: greeting, ANSI art, prompt.

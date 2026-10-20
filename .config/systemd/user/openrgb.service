@@ -1,0 +1,36 @@
+# OpenRGB in the background, as YOU, for the graphical session.
+#
+# Not the packaged /usr/lib/systemd/system/openrgb.service: that one runs as
+# root in --server mode with its own config in /etc/openrgb, so it would not
+# see ~/.config/OpenRGB, and the Effects / Visual Map plugins only run inside
+# the GUI process. Device access for this user comes from the uaccess ACLs set
+# up by ~/fix-openrgb.sh (60-openrgb.rules + i2c-dev).
+#
+# --startminimized = GUI hidden to the tray (waybar "tray" module); click the
+# tray icon to open it. Quitting from the tray stops it until the next login or
+# `systemctl --user start openrgb`.
+[Unit]
+Description=OpenRGB (minimized to tray)
+Documentation=https://openrgb.org
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+# Wait (up to 60s) for waybar's tray to own org.kde.StatusNotifierWatcher, so
+# the OpenRGB tray icon is registered rather than racing waybar at login.
+# Starts anyway on timeout.
+ExecStartPre=/bin/sh -c 'for i in $(seq 120); do busctl --user status org.kde.StatusNotifierWatcher >/dev/null 2>&1 && exit 0; sleep 0.5; done; exit 0'
+TimeoutStartSec=90
+# --server on localhost only: any OTHER OpenRGB window you open then finds
+# this one and runs as a client of it ("running in client mode") instead of
+# grabbing the hardware itself. Two instances driving the same devices fight,
+# and closing the second freezes the lights mid-effect.
+ExecStart=/usr/bin/openrgb --startminimized --server --server-host 127.0.0.1
+# Only restart on a crash, so "Quit" from the tray means quit.
+Restart=on-failure
+RestartSec=5
+OOMPolicy=continue
+
+[Install]
+WantedBy=graphical-session.target

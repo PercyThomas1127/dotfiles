@@ -1,6 +1,7 @@
 -- Hyprland Lua config -- "Balcony" rice by 1amSimp1e, ported to this machine and recolored to match the panel. The rice is a complete Hyprland config, not just a theme.
 --   rice:    github.com/1amSimp1e/dots  (branch: balcony)
 --   machine: Fedora Asahi Remix 44, Apple Silicon MacBook Air (M1, 13")
+--   gentoo-desktop branch: Gentoo amd64, Radeon Pro WX 7100, one 1920x1080@75 monitor on DP-1
 --
 -- The upstream rice ships hyprland.conf. Hyprland loads hyprland.lua in
 -- preference to hyprland.conf, and .conf support is removed in 0.57, so its
@@ -18,7 +19,7 @@ hl.monitor({
     output   = "",
     mode     = "preferred",
     position = "auto",
-    scale    = "1.6",
+    scale    = "1",  -- 1920x1080 desktop monitor (was 1.6 for the M1 panel)
 })
 
 
@@ -29,7 +30,7 @@ hl.monitor({
 local terminal    = "konsole"
 local fileManager = "dolphin"
 local menu        = "wmenu-run"
-local browser     = "firefox"
+local browser     = "firefox-bin"  -- www-client/firefox-bin
 local editor      = "code"
 -- Vesktop is installed as a Flatpak (dev.vencord.Vesktop); there is no native
 -- binary on PATH, so the bare name would not launch.
@@ -86,7 +87,9 @@ hl.on("hyprland.start", function ()
   hl.exec_cmd(table.concat({
     "waybar",
     "dunst",
-    "mpvpaper -f -o 'no-audio loop-file=inf panscan=1.0 hwdec=no "
+    -- gentoo-desktop: mpvpaper is the PercyThomas1127/mpvpaper fork
+    -- (fractional-scale branch), built into ~/.local/bin from ~/Developer/mpvpaper.
+    os.getenv("HOME") .. "/.local/bin/mpvpaper -f -o 'no-audio loop-file=inf panscan=1.0 hwdec=no "
         .. "input-ipc-server=/tmp/mpvsocket' '*' "
         .. os.getenv("HOME") .. "/Videos/cherry-blossom-wallpaper.mp4",
     -- Pauses the wallpaper whenever it is actually covered, measuring real
@@ -135,7 +138,7 @@ hl.on("hyprland.start", function ()
     "kwalletd6",
     "kdeconnectd",
     "kdeconnect-indicator",
-    "/usr/libexec/kf6/polkit-kde-authentication-agent-1",
+    "/usr/libexec/polkit-kde-authentication-agent-1",
     "XDG_MENU_PREFIX=plasma- kbuildsycoca6",
   }, " & "))
 end)
@@ -273,9 +276,10 @@ hl.config({
         kb_layout  = "us",
         kb_variant = "",
         kb_model   = "",
-        -- Right Super (right Cmd) acts as the Compose key.
-        -- Left Super still drives all the SUPER binds.
-        kb_options = "compose:rwin",
+        -- gentoo-desktop: the Menu key AND Right Alt are both Compose (was
+        -- compose:rwin, right Cmd, on the MacBook). Both Super keys are plain
+        -- Super again; Right Alt no longer acts as Alt for ALT binds.
+        kb_options = "compose:menu,compose:ralt",
         kb_rules   = "",
 
         follow_mouse = 1,
@@ -465,13 +469,14 @@ hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO
 hl.bind("XF86AudioMute",        hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     { locked = true, repeating = true })
 hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   { locked = true, repeating = true })
 
+-- gentoo-desktop: no backlight or keyboard backlight on this machine.
 -- Backlight device here is "apple-panel-bl" (the original hardcoded "intel_backlight").
-hl.bind("XF86MonBrightnessUp",
-    hl.dsp.exec_cmd([[brightnessctl -d apple-panel-bl set +2% && notify-send "Brightness" "$(brightnessctl -m -d apple-panel-bl | awk -F, '{print substr($4, 0, length($4)-1)}')%"]]),
-    { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown",
-    hl.dsp.exec_cmd([[brightnessctl -d apple-panel-bl set 2%- && notify-send "Brightness" "$(brightnessctl -m -d apple-panel-bl | awk -F, '{print substr($4, 0, length($4)-1)}')%"]]),
-    { locked = true, repeating = true })
+-- hl.bind("XF86MonBrightnessUp",
+--     hl.dsp.exec_cmd([[brightnessctl -d apple-panel-bl set +2% && notify-send "Brightness" "$(brightnessctl -m -d apple-panel-bl | awk -F, '{print substr($4, 0, length($4)-1)}')%"]]),
+--     { locked = true, repeating = true })
+-- hl.bind("XF86MonBrightnessDown",
+--     hl.dsp.exec_cmd([[brightnessctl -d apple-panel-bl set 2%- && notify-send "Brightness" "$(brightnessctl -m -d apple-panel-bl | awk -F, '{print substr($4, 0, length($4)-1)}')%"]]),
+--     { locked = true, repeating = true })
 
 -- Keyboard backlight (LED class device "kbd_backlight" on this machine).
 --
@@ -484,15 +489,15 @@ hl.bind("XF86MonBrightnessDown",
 --
 -- brightnessctl reaches this LED through logind's D-Bus; the sysfs node is
 -- root-owned, so no udev rule is needed and none should be added.
-local brightness = os.getenv("HOME") .. "/.config/hypr/scripts/brightness"
-hl.bind("SUPER + XF86MonBrightnessUp",
-    hl.dsp.exec_cmd(brightness .. " up kbd"),   { locked = true, repeating = true })
-hl.bind("SUPER + XF86MonBrightnessDown",
-    hl.dsp.exec_cmd(brightness .. " down kbd"), { locked = true, repeating = true })
-hl.bind("XF86KbdBrightnessUp",
-    hl.dsp.exec_cmd(brightness .. " up kbd"),   { locked = true, repeating = true })
-hl.bind("XF86KbdBrightnessDown",
-    hl.dsp.exec_cmd(brightness .. " down kbd"), { locked = true, repeating = true })
+-- local brightness = os.getenv("HOME") .. "/.config/hypr/scripts/brightness"
+-- hl.bind("SUPER + XF86MonBrightnessUp",
+--     hl.dsp.exec_cmd(brightness .. " up kbd"),   { locked = true, repeating = true })
+-- hl.bind("SUPER + XF86MonBrightnessDown",
+--     hl.dsp.exec_cmd(brightness .. " down kbd"), { locked = true, repeating = true })
+-- hl.bind("XF86KbdBrightnessUp",
+--     hl.dsp.exec_cmd(brightness .. " up kbd"),   { locked = true, repeating = true })
+-- hl.bind("XF86KbdBrightnessDown",
+--     hl.dsp.exec_cmd(brightness .. " down kbd"), { locked = true, repeating = true })
 
 -- Requires playerctl
 hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })
@@ -525,9 +530,10 @@ hl.bind("SUPER + CONTROL + 4", hl.dsp.exec_cmd("~/.config/hypr/scripts/screensho
 -- Hyprland log showed the lid device being detected and zero dispatches.
 --
 -- Behaviour now lives in scripts/lid so it can depend on AC vs battery.
-hl.bind("switch:on:Apple SMC power/lid events",
-    hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/lid close"),
-    { locked = true })
-hl.bind("switch:off:Apple SMC power/lid events",
-    hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/lid open"),
-    { locked = true })
+-- gentoo-desktop: desktop, no lid switch.
+-- hl.bind("switch:on:Apple SMC power/lid events",
+--     hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/lid close"),
+--     { locked = true })
+-- hl.bind("switch:off:Apple SMC power/lid events",
+--     hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/lid open"),
+--     { locked = true })

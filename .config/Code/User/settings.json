@@ -126,5 +126,6 @@
         "terminal.ansiWhite": "#ffffff",
         "terminal.ansiBrightWhite": "#ffffff"
     },
-    "claudeCode.preferredLocation": "panel"
+    "claudeCode.preferredLocation": "panel",
+    "chat.disableAIFeatures": true
 }

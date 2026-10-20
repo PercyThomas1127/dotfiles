@@ -26,7 +26,7 @@
 # ncspot's ID stays as an automatic fallback, which is deliberate upstream
 # behaviour -- it has extended quota access to endpoints that newly-registered
 # apps can no longer call, so browse and personalized content keep working.
-client_id_command = { command = "cat", args = ["/home/yijunchen/.local/share/spotify-player/client_id"] }
+client_id_command = { command = "cat", args = ["/home/cokerona/.local/share/spotify-player/client_id"] }
 
 [device]
 normalization = true

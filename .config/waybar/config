@@ -1,9 +1,9 @@
 {
     "height": 40, // Waybar height (to be removed for auto height)
     "layer": "top", // Waybar at top layer
-    "modules-left": ["image#launcher", "cpu", "memory", "hyprland/workspaces", "custom/weather"],
+    "modules-left": ["image#launcher", "cpu", "custom/gpu-x16", "memory", "hyprland/workspaces", "custom/weather"],
     "modules-center": ["group/media"],
-    "modules-right": ["tray", "bluetooth", "network", "pulseaudio",  "backlight", "battery", "custom/lock", "clock", "custom/power-menu"],
+    "modules-right": ["tray", "bluetooth", "network", "pulseaudio", "custom/lock", "clock", "custom/gpu-x4", "custom/power-menu"],
     "hyprland/workspaces": {
       "format": "{icon}",
       "on-click": "activate",
@@ -36,7 +36,7 @@
 
     "cpu": {
       "interval": 10,
-      "format": "󰻠 {}%",
+      "format": "󰻠 {usage}%",  // NOT bare {}: in the cpu module that is the load average
       "max-length": 10,
       "on-click": "",
     },
@@ -45,6 +45,19 @@
         "format": "󰍛 {}%",
         "format-alt":"󰍛 {used:0.1f}GB",
         "max-length": 10,
+    },
+    // One pill per GPU, keyed by PCI slot address -- see scripts/gpu.py.
+    "custom/gpu-x16": {
+        "exec": "python3 ~/.config/waybar/scripts/gpu.py 0000:0a:00.0",
+        "return-type": "json",
+        "interval": 10,  // match cpu
+        "max-length": 16,
+    },
+    "custom/gpu-x4": {
+        "exec": "python3 ~/.config/waybar/scripts/gpu.py 0000:04:00.0",
+        "return-type": "json",
+        "interval": 10,
+        "max-length": 16,
     },
     "backlight": {
         "device": "apple-panel-bl",
@@ -130,6 +143,11 @@
         // would ask for more height than the group has and GTK would scale the
         // whole pixbuf down.
         "size": 48,
+        // gentoo-desktop (waybar 0.15): an image module with NO "interval"
+        // re-runs in a tight loop, starving the main thread so the bar never
+        // draws. Updates come from "signal" (and the path never changes), so a
+        // daily poll is effectively "never".
+        "interval": 86400,
         "signal": 5,
         // Would otherwise show the cache file path on hover.
         "tooltip": false,
@@ -193,8 +211,9 @@
     // with the symbol centred, verified at dx=0.0 dy=0.0. Squaring also makes
     // this immune to whether waybar fits-to-box or stretches.
     "image#launcher": {
-        "path": "/home/yijunchen/.config/waybar/assets/asahi.png",
+        "path": "/home/cokerona/.config/waybar/assets/gentoo.png",
         "size": 22,
+        "interval": 86400,  // see "image" above
         "on-click": "rofi -show drun &",
         "tooltip": false,
     },

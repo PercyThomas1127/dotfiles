@@ -23,6 +23,8 @@ window#waybar.hidden {
 #bluetooth,
 #cpu,
 #memory,
+#custom-gpu-x16,
+#custom-gpu-x4,
 #custom-media,
 #mode,
 #custom-lock,
@@ -159,6 +161,11 @@ window#waybar.hidden {
   color: #008c4a;
 }
 
+#custom-gpu-x16,
+#custom-gpu-x4 {
+  color: #008c4a;
+}
+
 #workspaces button {
   color: #6e3a83;
   box-shadow: inset 0 -3px transparent;
@@ -260,8 +267,11 @@ window#waybar.hidden {
    state with ~1px to spare.
    Do not "simplify" this back to the shared padding: the bug only appears at
    high volume, so it looks fine at the volume you are probably testing at. */
+/* gentoo-desktop: no backlight/battery, so volume now ends the
+   network|pulseaudio pill and takes over #battery's right-hand corners. */
 #pulseaudio {
   color: #6e3a83;
+  border-radius: 0px 8px 8px 0px;
   padding-left: 9px;
   padding-right: 14px;
   font-size: 22px;
