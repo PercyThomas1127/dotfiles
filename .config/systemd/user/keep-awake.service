@@ -1,0 +1,14 @@
+[Unit]
+Description=Keep this PC from sleeping (it hosts eBay Deals and the local AI)
+
+[Service]
+# A logind "sleep" block lock: automatic suspend from Plasma, hypridle or
+# anything else is refused, while the screen can still lock and turn off.
+# A manual sleep asks for your password to override it. Stop or disable
+# this unit to allow sleep again.
+ExecStart=/usr/bin/systemd-inhibit --what=sleep --mode=block --who="keep-awake.service" --why="Hosts eBay Deals and the local AI around the clock" /usr/bin/sleep infinity
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
